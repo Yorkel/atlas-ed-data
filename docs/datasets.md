@@ -138,14 +138,16 @@ These files are used to run the England-trained EduAtlas model on Scottish/Irish
 The local inference CSVs are intermediate outputs. The production data store is a Supabase (managed Postgres) database populated by `src/seed_supabase.py`.
 
 ### `articles` table
-One row per article. Columns are populated in stages by different pipeline steps:
+One row per article — both training and inference articles. 25 columns populated in stages:
 
 | Stage | Columns populated | Script |
 |---|---|---|
-| Seed (this repo) | `url`, `title`, `date`, `text`, `source`, `country`, `type`, `institution_name`, `week_number`, `week_start`, `week_end` | `src/seed_supabase.py` |
-| Topic model | `dominant_topic`, `topic_probabilities` | FastAPI + joblib (Docker, separate service) |
+| Seed — training | `url`, `dataset_type`, `title`, `article_date`, `article_text`, `source`, `country`, `article_type`, `preview`, `election_period` | `src/seed_supabase.py --source training` |
+| Seed — inference | same as above + `week_number`, `week_start`, `week_end` | `src/seed_supabase.py --source inference` |
+| Topic model | `topic_num`, `dominant_topic`, `dominant_topic_weight`, `topic_probabilities`, `text_clean`, `run_id` | FastAPI + joblib (Docker, separate service) |
 | Sentiment | `sentiment_score`, `sentiment_label` | Sentiment pipeline (separate) |
+| Contestability | `contestability_score` | Contestability pipeline (separate) |
 
-`url` is the primary key — upsert behaviour prevents duplicates if `seed_supabase.py` is re-run.
+`url` is unique — upsert on `url` prevents duplicates if `seed_supabase.py` is re-run. `id` (UUID) is the primary key.
 
 See `docs/decisions.md` §15 for full architecture rationale and the complete column schema.

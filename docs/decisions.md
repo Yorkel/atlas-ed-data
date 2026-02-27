@@ -184,34 +184,34 @@ Phase 2 will involve retraining with all three datasets and comparing the output
 
 **Why Supabase:** Managed Postgres with a Python client (`supabase-py`), built-in REST API, and Database Webhooks — sufficient for the volume of this project (hundreds of articles per week, not millions) without requiring a custom backend.
 
-**Single articles table** with nullable topic columns. Raw articles are inserted first; topic and sentiment columns are filled in by subsequent pipeline steps. This avoids needing a separate "raw" and "labelled" table at this scale.
+**Single articles table** with nullable model/pipeline columns. Both training and inference articles are seeded; topic, sentiment, and contestability columns are filled in by subsequent pipeline steps. Full schema in `docs/supabase_schema.md`.
 
-**Articles table schema:**
+**Articles table schema (25 columns, summarised):**
 
-| Column | Type | Source |
+| Column | Type | Populated by |
 |---|---|---|
-| `url` | text (primary key) | inference CSV |
-| `title` | text | inference CSV |
-| `date` | date | inference CSV |
-| `text` | text | inference CSV |
-| `source` | text | inference CSV |
-| `country` | text | inference CSV |
-| `type` | text | inference CSV |
-| `institution_name` | text | inference CSV |
-| `week_number` | integer | seed script |
-| `week_start` | date | seed script |
-| `week_end` | date | seed script |
-| `dominant_topic` | text | FastAPI/joblib model |
-| `topic_probabilities` | jsonb | FastAPI/joblib model |
-| `sentiment_score` | float | sentiment pipeline |
-| `sentiment_label` | text | sentiment pipeline |
+| `id` | uuid PK | auto |
+| `url` | text (unique) | seed script |
+| `dataset_type` | text | seed script (`'training'` or `'inference'`) |
+| `title`, `article_date`, `article_text`, `source`, `country`, `article_type`, `institution_name` | text/date | seed script |
+| `week_number`, `week_start`, `week_end` | int/date | seed script (inference only, NULL for training) |
+| `preview` | text | seed script (first 300 chars of article_text) |
+| `election_period` | text | seed script (`'pre_election'` / `'post_election'` relative to 2024-07-04) |
+| `topic_num`, `dominant_topic`, `dominant_topic_weight`, `topic_probabilities`, `text_clean`, `run_id` | int/text/float/jsonb | FastAPI model |
+| `sentiment_score`, `sentiment_label` | float/text | sentiment pipeline |
+| `contestability_score` | float | contestability pipeline |
+| `created_at` | timestamptz | auto |
+
+**Note on column naming:** `date`, `text`, and `type` are PostgreSQL reserved words — prefixed with `article_` to avoid SQL parsing errors.
 
 **How each pipeline step connects:**
 
-1. `seed_supabase.py` (this repo) — reads weekly inference CSV, inserts raw articles (topic/sentiment columns NULL). Upserts on `url` to avoid duplicates if run twice.
-2. FastAPI + joblib model (Docker, separate service) — triggered by Supabase Database Webhook on INSERT, or called directly by `seed_supabase.py`. Receives article text, returns `dominant_topic` + `topic_probabilities`, writes back to the same row.
-3. Sentiment pipeline (separate) — reads rows where `sentiment_score IS NULL`, processes, writes back.
-4. Dashboard, newsletter DB — read from Supabase directly.
+1. `seed_supabase.py --source training` — upserts ~3,972 training articles from `training_data_v1.csv`. Week columns NULL.
+2. `seed_supabase.py --source inference` — upserts weekly inference articles. Week columns populated from filename.
+3. FastAPI + joblib model (Docker, separate service) — called after seeding, writes topic columns back to the same row.
+4. Sentiment pipeline — reads rows where `sentiment_score IS NULL`, writes back.
+5. Contestability pipeline — reads rows where `contestability_score IS NULL`, writes back.
+6. Dashboard, newsletter — read from Supabase directly.
 
 **FastAPI not in this repo.** `seed_supabase.py` only requires `supabase-py`. No FastAPI dependency in the scraping pipeline.
 
