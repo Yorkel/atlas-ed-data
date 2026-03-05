@@ -5,8 +5,7 @@
 #   python merge.py              → outputs training_data_v2.csv (increment manually)
 #   python merge.py --version 2  → outputs training_data_v2.csv
 #
-# Currently merges England-only sources.
-# Phase 2: add Scotland and Ireland sources here to retrain cross-jurisdiction.
+# England training data only. Scotland and Ireland have their own merge scripts.
 
 import argparse
 import pandas as pd
@@ -15,7 +14,7 @@ from datetime import date
 
 TRAINING_CUTOFF = date(2025, 12, 31)  # must match run.py
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 TRAINING = ROOT / "data" / "training"
 ENG = TRAINING / "england"
 

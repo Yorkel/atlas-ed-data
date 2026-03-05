@@ -4,27 +4,29 @@
 #   python run.py --country eng
 #   Scrapes all England sources back to 2023-01-01.
 #   Output: per-source CSVs in data/training/england/
-#           then run merge.py to produce data/training/training_data.csv
+#           then run england/merge.py to produce data/training/training_data.csv
 #
 # MODE B — training top-up (--since and --until <= TRAINING_CUTOFF):
 #   python run.py --country eng --since 2025-12-05 --until 2025-12-31
-#   Appends new articles to existing training CSVs. Run merge.py afterwards.
+#   Appends new articles to existing training CSVs. Run england/merge.py afterwards.
 #
 # MODE C — weekly inference (--since and --until after TRAINING_CUTOFF):
-#   python run.py --country eng --since 2026-01-09 --until 2026-01-15 --week 1
-#   Writes one merged CSV to data/inference/england/week01_2026-01-15.csv
+#   python run.py --country eng --since 2026-02-21 --until 2026-02-27 --week 9
+#   Writes one merged CSV to data/inference/england/week09_2026-02-27.csv
 #
-# Scotland / Ireland (future — Phase 1, inference only):
-#   python run.py --country sco --since 2026-01-06 --until 2026-01-12
-#   python run.py --country irl --since 2026-01-06 --until 2026-01-12
-#   → data/inference/scotland/ and data/inference/ireland/
+# Scotland / Ireland — retrospective (one-time, Jan 2023 → 20 Feb 2026):
+#   python run.py --country sco --until 2026-02-20
+#   python run.py --country irl --until 2026-02-20
+#   → data/inference/scotland/2026-02-20.csv
+#   → data/inference/ireland/2026-02-20.csv
+#   Scotland and Ireland are inference-only (Phase 1). All data goes to data/inference/.
 #
-# Scotland / Ireland retrospective (Phase 1 test corpus, Jan 2025 onwards):
-#   python run.py --country sco --since 2025-01-01 --until 2025-12-31
-#   → routes to data/inference/scotland/ (not training — Phase 2 only)
+# Weekly inference (all three countries, from 21 Feb 2026 onwards):
+#   python run.py --country eng --since 2026-02-21 --until 2026-02-27 --week 9
+#   python run.py --country sco --since 2026-02-21 --until 2026-02-27 --week 9
+#   python run.py --country irl --since 2026-02-21 --until 2026-02-27 --week 9
 #
-# GitHub Actions calls Mode C automatically each Monday:
-#   python run.py --country eng --since $(date -d "last monday" +%Y-%m-%d) --until $(date -d "yesterday" +%Y-%m-%d)
+# GitHub Actions calls Mode C automatically each Monday for all three countries.
 
 import argparse
 from datetime import date, datetime
@@ -37,6 +39,20 @@ from england.epi import scrape_epi
 from england.nuffield import scrape_nuffield
 from england.fftlabs import scrape_fft_datalab
 from england.fed import scrape_fed
+
+from scotland.gov_scot import scrape_gov_scot
+from scotland.education_scotland import scrape_education_scotland
+from scotland.sera import scrape_sera
+from scotland.audit_scotland import scrape_audit_scotland
+from scotland.gtcs import scrape_gtcs
+from scotland.tes_scotland import scrape_tes_scotland
+
+from ireland.gov_ie import scrape_gov_ie
+from ireland.esri import scrape_esri
+from ireland.tasc import scrape_tasc
+from ireland.erc import scrape_erc
+from ireland.teaching_council import scrape_teaching_council
+from ireland.education_matters import scrape_education_matters
 
 try:
     from england.schoolsweek import scrape_schoolsweek
@@ -52,8 +68,8 @@ TRAINING_CUTOFF = date(2025, 12, 31)  # articles up to this date = training data
 # Default retrospective start per country
 RETROSPECTIVE_START = {
     "eng": date(2023, 1, 1),
-    "sco": date(2025, 1, 1),   # Phase 1: inference-only test corpus from Jan 2025
-    "irl": date(2025, 1, 1),
+    "sco": date(2023, 1, 1),
+    "irl": date(2023, 1, 1),
 }
 
 COUNTRY_DIR = {
@@ -78,8 +94,22 @@ TRAINING_FILENAMES = {
 # Scrapers grouped by country code — add Scotland/Ireland entries here when ready
 SCRAPERS = {
     "eng": [],   # populated below after optional import
-    "sco": [],   # future: from scotland.xxx import scrape_xxx
-    "irl": [],   # future: from ireland.xxx import scrape_xxx
+    "sco": [
+        ("gov_scot",            scrape_gov_scot),
+        ("education_scotland",  scrape_education_scotland),
+        ("sera",                scrape_sera),
+        ("audit_scotland",      scrape_audit_scotland),
+        ("gtcs",                scrape_gtcs),
+        ("tes_scotland",        scrape_tes_scotland),
+    ],
+    "irl": [
+        ("gov_ie",              scrape_gov_ie),
+        ("esri",                scrape_esri),
+        ("tasc",                scrape_tasc),
+        ("erc",                 scrape_erc),
+        ("teaching_council",    scrape_teaching_council),
+        ("education_matters",   scrape_education_matters),
+    ],
 }
 
 _eng = SCRAPERS["eng"]
@@ -101,6 +131,20 @@ SOURCE_META = {
     "nuffield":    {"country": "eng", "type": "think_tank",    "institution_name": "Nuffield Foundation"},
     "fft":         {"country": "eng", "type": "ed_res_org",    "institution_name": "FFT Education Datalab"},
     "fed":         {"country": "eng", "type": "prof_body",     "institution_name": "Foundation for Educational Development"},
+    # Scotland
+    "gov_scot":           {"country": "sco", "type": "government",    "institution_name": "Scottish Government"},
+    "education_scotland": {"country": "sco", "type": "gov_agency",    "institution_name": "Education Scotland"},
+    "sera":               {"country": "sco", "type": "think_tank",    "institution_name": "SERA"},
+    "audit_scotland":     {"country": "sco", "type": "ed_res_org",    "institution_name": "Audit Scotland"},
+    "gtcs":               {"country": "sco", "type": "prof_body",     "institution_name": "GTCS"},
+    "tes_scotland":       {"country": "sco", "type": "ed_journalism", "institution_name": "TES Scotland"},
+    # Ireland
+    "gov_ie":             {"country": "irl", "type": "government",    "institution_name": "Department of Education (Ireland)"},
+    "esri":               {"country": "irl", "type": "think_tank",    "institution_name": "ESRI"},
+    "tasc":               {"country": "irl", "type": "think_tank",    "institution_name": "TASC"},
+    "erc":                {"country": "irl", "type": "ed_res_org",    "institution_name": "Educational Research Centre"},
+    "teaching_council":   {"country": "irl", "type": "prof_body",     "institution_name": "Teaching Council"},
+    "education_matters":  {"country": "irl", "type": "ed_journalism", "institution_name": "Education Matters"},
 }
 
 FINAL_COLS = ["url", "title", "date", "text", "source", "country", "type", "institution_name"]
@@ -157,7 +201,7 @@ def _enrich(rows, name):
     return df[[c for c in FINAL_COLS if c in df.columns]]
 
 
-def _write_scrape_log(inference_dir, since_date, until_date, filename, frames):
+def _write_scrape_log(inference_dir, since_date, until_date, filename, frames, country):
     from datetime import datetime
     log_path = ROOT / "docs" / "scrape_log.md"
     run_time = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -166,17 +210,15 @@ def _write_scrape_log(inference_dir, since_date, until_date, filename, frames):
     total = sum(len(f) for f in frames)
 
     counts = {f["source"].iloc[0]: len(f) for f in frames if "source" in f.columns}
+    source_summary = ", ".join(f"{s}={n}" for s, n in counts.items())
 
-    source_cols = ["schoolsweek", "gov", "epi", "nuffield", "fft", "fed"]
-    count_cells = " | ".join(str(counts.get(s, 0)) for s in source_cols)
-
-    row = f"| {run_time} | {since_str} → {until_str} | {filename} | {count_cells} | **{total}** |\n"
+    row = f"| {run_time} | {country} | {since_str} → {until_str} | {filename} | {source_summary} | **{total}** |\n"
 
     if not log_path.exists():
         header = (
             "# Inference Scrape Log\n\n"
-            "| Run time | Date range | File | schoolsweek | gov | epi | nuffield | fft | fed | Total |\n"
-            "|----------|------------|------|-------------|-----|-----|----------|-----|-----|-------|\n"
+            "| Run time | Country | Date range | File | Sources | Total |\n"
+            "|----------|---------|------------|------|---------|-------|\n"
         )
         log_path.write_text(header + row)
     else:
@@ -292,7 +334,7 @@ def main():
         merged = pd.concat(inference_frames, ignore_index=True)
         merged.to_csv(out, index=False)
         print(f"\n✅ Wrote {len(merged)} articles to {out}")
-        _write_scrape_log(inference_dir, since_date, until_date, out.name, inference_frames)
+        _write_scrape_log(inference_dir, since_date, until_date, out.name, inference_frames, country)
         _validate_inference(merged, out.name)
 
     print(f"\n{'='*50}")
