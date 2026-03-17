@@ -1,130 +1,72 @@
-# education-policy-scraper
+# atlas-ed-data
 
-A scraping pipeline for UK and Irish education policy documents from public sources. Collects articles from government bodies, think tanks, research organisations and education press across England, Scotland and the Republic of Ireland.
+Data collection pipeline for the **AtlasED** project — a cross-jurisdictional analysis of education policy discourse across England, Scotland and the Republic of Ireland.
 
-The data produced by this pipeline feeds two downstream projects:
+This repo scrapes, cleans and structures education policy articles from government bodies, think tanks, research organisations, professional bodies and education media. The resulting corpus feeds the [AtlasED analysis pipeline](https://github.com/Yorkel/atlas-ed-pipeline) for NMF topic modelling, BERTopic clustering, and Jensen-Shannon divergence analysis.
 
-- **Newsletter automation** — weekly digests of education policy coverage for the Education Research Programme (ERP) newsletter
-- **EduAtlas** — an AI-assisted text analysis tool examining education policy topics and sentiment across England, Scotland and the Republic of Ireland, with a focus on whose voices shape policy debate and what assumptions are built into AI-assisted analysis
-
----
-
-## Current sources (England)
-
-| Source | Type | Coverage |
-|---|---|---|
-| GOV.UK (DfE, Ofsted, Ofqual, ESFA, Office for Students) | Government | News and policy communications |
-| Education Policy Institute (EPI) | Think tank | Research publications |
-| Nuffield Foundation | Think tank | News and research |
-| FFT Education Datalab | Research organisation | Blog posts |
-| Foundation for Educational Development (FED) | Professional body | News and resources |
-| Schools Week | Education journalism | News articles (scraper in progress) |
-
-Scotland and Republic of Ireland sources are planned — see [docs/decisions.md](docs/decisions.md).
+UCL Grand Challenges Project | UCL Institute of Education | 2026
 
 ---
 
-## How the pipeline works
+## Dataset summary
+
+| Country | Sources | Articles (retro) | Articles (weekly) | Period |
+|---|---|---|---|---|
+| **England** | 6 | 3,943 | 207 (9 weeks) | Jan 2023 – Mar 2026 |
+| **Ireland** | 5 | 1,036 | 64 (9 weeks) | Jan 2023 – Mar 2026 |
+| **Scotland** | 5 | 511 | 107 (9 weeks) | Jan 2023 – Mar 2026 |
+| **Total** | **16** | **5,490** | **378** | |
+
+England is training data (NMF reference distribution). Scotland and Ireland are inference-only.
+
+---
+
+## Sources by country
+
+| Category | England | Ireland | Scotland |
+|---|---|---|---|
+| Government | DfE | Gov.ie | Gov.scot |
+| Think tank | EPI | ESRI | SERA |
+| Funder | Nuffield Foundation | — | — |
+| Research org | FFT Datalab | ERC | — |
+| Professional body | FED | Teaching Council | GTCS, ADES |
+| Ed media | Schools Week | Education Matters | — |
+| Civil society | — | — | Children in Scotland |
+
+See [docs/dataset_analysis.md](docs/dataset_analysis.md) for detailed comparability notes and structural findings.
+
+---
+
+## How to use
+
+### Full retrospective scrape (one-off)
 
 ```bash
-python src/run.py --country eng
+cd src
+python run.py --country eng --until 2025-12-31    # England training data
+python run.py --country irl --until 2025-12-31    # Ireland inference
+python run.py --country sco --until 2025-12-31    # Scotland inference
 ```
 
-There are two modes depending on the date flags you pass:
-
-| Mode | Command | Output |
-|---|---|---|
-| **A — Full retrospective** | `python src/run.py --country eng` | `data/training/england/` per-source CSVs |
-| **C — Weekly inference** | `python src/run.py --country eng --since 2026-01-06 --until 2026-01-12` | `data/inference/england/2026-01-06_2026-01-12.csv` |
-
-**Training data** covers Jan 2023 – Dec 2025 (England only). Run Mode A once to build the full corpus, then run `merge.py` to produce the merged dataset.
-
-**Inference data** is weekly from Jan 2026 onwards. Each run produces a single merged CSV in `data/inference/<country>/`. Simulated weekly batches (Jan–Feb 2026) are created by running Mode C with historical date ranges before the automated weekly schedule begins.
-
-After Mode A, regenerate the merged training dataset:
+### Weekly inference scrape
 
 ```bash
-python src/merge.py
+python run.py --country eng --since 2026-03-14 --until 2026-03-20 --week 10
+python run.py --country irl --since 2026-03-14 --until 2026-03-20 --week 10
+python run.py --country sco --since 2026-03-14 --until 2026-03-20 --week 10
 ```
 
-This produces `data/training/training_data.csv` — all sources combined, deduplicated, capped at 31 December 2025.
+### Post-processing (automatic)
 
-### Scotland and Ireland (Phase 1)
-
-Scotland and Ireland sources always go to `data/inference/` — they are not included in training data until Phase 2. Their retrospective corpus (Jan 2025 onwards) is also created via Mode C:
-
-```bash
-python src/run.py --country sco --since 2025-01-01 --until 2025-12-31
-python src/run.py --country irl --since 2025-01-01 --until 2025-12-31
-```
-
-See [docs/decisions.md](docs/decisions.md) for the rationale.
-
----
-
-## Project structure
-
-```
-src/
-├── run.py                  # Pipeline entry point — all modes and countries
-├── merge.py                # Merges per-source training CSVs into training_data.csv
-├── england/                # England scrapers
-│   ├── dfe.py              # GOV.UK education (DfE, Ofsted, Ofqual, ESFA...)
-│   ├── epi.py              # Education Policy Institute
-│   ├── nuffield.py         # Nuffield Foundation
-│   ├── fftlabs.py          # FFT Education Datalab
-│   └── fed.py              # Foundation for Educational Development
-├── scotland/               # Future: Scottish Government, Education Scotland...
-└── ireland/                # Future: Gov.ie, NCCA, Teaching Council...
-
-data/                       # Gitignored — stored locally only
-├── training/
-│   ├── england/            # Per-source CSVs (2023–2025)
-│   ├── scotland/           # Future (Phase 2)
-│   ├── ireland/            # Future (Phase 2)
-│   └── training_data.csv   # Merged, deduplicated training corpus
-└── inference/
-    ├── england/            # Weekly merged CSVs from Jan 2026
-    ├── scotland/           # Phase 1 test corpus + weekly
-    └── ireland/            # Phase 1 test corpus + weekly
-
-docs/
-├── decisions.md            # Architectural and data decisions
-├── datasets.md             # Dataset schemas and descriptions
-└── ethics.md               # Ethical considerations
-
-x_ERP_newsletter_automation/   # Newsletter parsing pipeline (future separate repo)
-experiments/                    # Exploratory notebooks
-```
-
----
-
-## Adding a new source
-
-Five steps — always the same pattern regardless of country or source type:
-
-**1.** Write the scraper in `src/<country>/sourcename.py` using the standard interface:
-```python
-def scrape_sourcename(since_date=None, until_date=None, output_path=None, append=False):
-    # scrape articles, return list of dicts with url, title, date, text
-    return all_articles
-```
-
-**2.** Register in `src/run.py` — add to `SCRAPERS`, `SOURCE_META`, and `TRAINING_FILENAMES`
-
-**3.** Add to `src/merge.py` — add an entry to `SOURCES` (or `load_gov()` equivalent for government sources with extra columns)
-
-**4.** Run the retrospective scrape: `python src/run.py --country eng`
-
-**5.** Regenerate training data: `python src/merge.py`
-
-See [docs/decisions.md](docs/decisions.md) for full detail on the source selection criteria.
+All inference runs automatically apply:
+1. **Empty text removal** — drops articles with no body text
+2. **Title-only HE filter** — removes articles clearly about higher education (title contains "university" etc. with no school-level terms)
+3. **Language flagging** — adds `language` column (Irish `ga`, Scots Gaelic `gd`, default `en`)
+4. **Deduplication** — by URL
 
 ---
 
 ## Data schema
-
-All output CSVs share the same columns:
 
 | Column | Description |
 |---|---|
@@ -132,12 +74,78 @@ All output CSVs share the same columns:
 | `title` | Article title |
 | `date` | Publication date (YYYY-MM-DD) |
 | `text` | Full article body text |
-| `source` | Source key (`gov`, `epi`, `nuffield`, `fft`, `fed`, `schoolsweek`) |
+| `source` | Source key (e.g. `gov_ie`, `schoolsweek`, `sera`) |
 | `country` | Jurisdiction (`eng`, `sco`, `irl`) |
-| `type` | Source type (`government`, `think_tank`, `ed_journalism`, `ed_res_org`, `prof_body`) |
-| `institution_name` | Publishing institution name |
+| `type` | Source category: `government`, `think_tank`, `funder`, `research_org`, `prof_body`, `ed_media`, `civil_society` |
+| `institution_name` | Full institution name |
+| `language` | ISO 639-1 code (`en`, `ga`, `gd`) |
 
-See [docs/datasets.md](docs/datasets.md) for full dataset descriptions.
+---
+
+## Project structure
+
+```
+src/
+├── run.py                      # Pipeline entry point — all modes and countries
+├── england/                    # England scrapers
+│   ├── dfe.py                  # GOV.UK education (DfE)
+│   ├── schoolsweek.py          # Schools Week
+│   ├── epi.py                  # Education Policy Institute
+│   ├── nuffield.py             # Nuffield Foundation
+│   ├── fftlabs.py              # FFT Education Datalab
+│   └── fed.py                  # Foundation for Educational Development
+├── scotland/                   # Scotland scrapers
+│   ├── gov_scot.py             # Scottish Government (news + publications)
+│   ├── sera.py                 # SERA
+│   ├── gtcs.py                 # GTCS
+│   ├── ades.py                 # ADES
+│   └── children_in_scotland.py # Children in Scotland
+└── ireland/                    # Ireland scrapers
+    ├── gov_ie.py               # Dept of Education (gov.ie)
+    ├── esri.py                 # ESRI
+    ├── erc.py                  # Educational Research Centre
+    ├── teaching_council.py     # Teaching Council
+    ├── education_matters.py    # Education Matters
+    ├── thejournal.py           # TheJournal.ie (login-walled, 0 articles currently)
+    └── rte.py                  # RTÉ News (no archive, weekly only)
+
+data/                           # Not in repo — regenerate by running scrapers
+├── training/england/           # England training corpus (Jan 2023 – Dec 2025)
+└── inference/
+    ├── england/                # Weekly CSVs from Jan 2026
+    ├── ireland/                # Retro (2025-12-31.csv) + weekly CSVs
+    └── scotland/               # Retro (2025-12-31.csv) + weekly CSVs
+
+docs/
+├── scot_ire_dataset.md         # Full pipeline and dataset documentation
+└── dataset_analysis.md         # Comparative discourse ecosystem analysis
+```
+
+---
+
+## Key findings from data collection
+
+The data collection process itself revealed structural differences in how education policy is publicly debated across the three jurisdictions:
+
+- **England** has a mature, open education media ecosystem (Schools Week = 69% of corpus)
+- **Scotland and Ireland** lack free dedicated education journalism — discourse is dominated by government and institutional voices
+- **Government share:** Ireland 77%, Scotland 37%, England 18%
+
+These differences are not data collection limitations — they are findings about the structure of education policy discourse. See [docs/dataset_analysis.md](docs/dataset_analysis.md).
+
+---
+
+## Adding a new source
+
+1. Write scraper in `src/<country>/sourcename.py` with standard interface:
+```python
+def scrape_sourcename(since_date=None, until_date=None, output_path=None, append=False):
+    return all_articles  # list of dicts with url, title, date, text
+```
+
+2. Register in `src/run.py` — add to `SCRAPERS`, `SOURCE_META`
+
+3. Run: `python run.py --country <code> --until 2025-12-31`
 
 ---
 
@@ -147,17 +155,22 @@ See [docs/datasets.md](docs/datasets.md) for full dataset descriptions.
 pip install -r requirements.txt
 ```
 
-Key dependencies: `requests`, `beautifulsoup4`, `pandas`, `python-dateutil`
+Dependencies: `requests`, `beautifulsoup4`, `lxml`, `pandas`, `langdetect`
 
 ---
 
-## Ethical considerations
+## Future expansion
 
-All data scraped by this pipeline is publicly available. See [docs/ethics.md](docs/ethics.md) for a full discussion of ethical considerations including data provenance, storage, and the politics of AI-assisted policy analysis.
+| Category | England | Ireland | Scotland |
+|---|---|---|---|
+| Union | NEU | INTO | EIS |
+| Parliament | Westminster Ed Select Committee | Oireachtas | Scottish Parliament |
+| Advocacy | Children's Commissioner | Children's Rights Alliance | *(included)* |
+
+Adding these would require retraining the NMF model.
 
 ---
 
-## Related projects
+## Related
 
-- **EduAtlas analysis** — topic modelling and sentiment analysis on this corpus (separate repo)
-- **ERP newsletter automation** — `x_ERP_newsletter_automation/` in this repo, future separate repo
+- **AtlasED analysis pipeline** — NMF, BERTopic, JSD analysis on this corpus (separate repo)
