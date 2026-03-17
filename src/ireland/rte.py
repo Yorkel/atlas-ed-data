@@ -121,8 +121,8 @@ def _scrape_article(url, since_date=None, until_date=None):
 def scrape_rte(since_date=None, until_date=None, output_path=None, append=False):
     all_articles = []
     seen = set()
-    max_pages = 100
-    stale_pages = 0  # track pages with no new links
+    max_pages = 10  # RTÉ only keeps ~37 stories, no point going further
+    no_new_articles = 0
 
     print("Starting RTÉ News Education scrape...")
 
@@ -148,22 +148,13 @@ def scrape_rte(since_date=None, until_date=None, output_path=None, append=False)
         new_links = [l for l in links if l not in seen]
         print(f"  Found {len(links)} links ({len(new_links)} new)")
 
-        if not new_links:
-            stale_pages += 1
-            if stale_pages >= 2:
-                print("  No new links for 2 pages — end of archive.")
-                break
-            continue
-        stale_pages = 0
-
         if not links:
             print("  No links — end of pages.")
             break
 
+        articles_before = len(all_articles)
         stop = False
-        for link in links:
-            if link in seen:
-                continue
+        for link in new_links:
             seen.add(link)
             print(f"    {link}")
 
@@ -182,6 +173,15 @@ def scrape_rte(since_date=None, until_date=None, output_path=None, append=False)
 
         if stop:
             break
+
+        # Stop if no new articles were added on this page
+        if len(all_articles) == articles_before:
+            no_new_articles += 1
+            if no_new_articles >= 2:
+                print("  No new articles for 2 pages — end of archive.")
+                break
+        else:
+            no_new_articles = 0
 
         print(f"  {len(all_articles)} articles so far")
         time.sleep(1)

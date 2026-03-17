@@ -49,13 +49,11 @@ from scotland.tes_scotland import scrape_tes_scotland
 
 from ireland.gov_ie import scrape_gov_ie
 from ireland.esri import scrape_esri
-from ireland.tasc import scrape_tasc
 from ireland.erc import scrape_erc
 from ireland.teaching_council import scrape_teaching_council
 from ireland.education_matters import scrape_education_matters
-from ireland.irish_times import scrape_irish_times
-from ireland.ncse import scrape_ncse
-from ireland.childrens_rights import scrape_childrens_rights
+from ireland.thejournal import scrape_thejournal
+from ireland.rte import scrape_rte
 
 try:
     from england.schoolsweek import scrape_schoolsweek
@@ -108,13 +106,11 @@ SCRAPERS = {
     "irl": [
         ("gov_ie",              scrape_gov_ie),
         ("esri",                scrape_esri),
-        ("tasc",                scrape_tasc),
         ("erc",                 scrape_erc),
         ("teaching_council",    scrape_teaching_council),
         ("education_matters",   scrape_education_matters),
-        ("irish_times",         scrape_irish_times),
-        ("ncse",                scrape_ncse),
-        ("childrens_rights",    scrape_childrens_rights),
+        ("thejournal",          scrape_thejournal),
+        ("rte",                 scrape_rte),
     ],
 }
 
@@ -147,16 +143,108 @@ SOURCE_META = {
     # Ireland
     "gov_ie":             {"country": "irl", "type": "government",    "institution_name": "Department of Education (Ireland)"},
     "esri":               {"country": "irl", "type": "think_tank",    "institution_name": "ESRI"},
-    "tasc":               {"country": "irl", "type": "think_tank",    "institution_name": "TASC"},
     "erc":                {"country": "irl", "type": "ed_res_org",    "institution_name": "Educational Research Centre"},
     "teaching_council":   {"country": "irl", "type": "prof_body",     "institution_name": "Teaching Council"},
     "education_matters":  {"country": "irl", "type": "ed_journalism", "institution_name": "Education Matters"},
-    "irish_times":        {"country": "irl", "type": "ed_journalism", "institution_name": "Irish Times Education"},
-    "ncse":               {"country": "irl", "type": "ed_res_org",    "institution_name": "NCSE"},
-    "childrens_rights":   {"country": "irl", "type": "advocacy",      "institution_name": "Children's Rights Alliance"},
+    "thejournal":         {"country": "irl", "type": "ed_journalism", "institution_name": "TheJournal.ie"},
+    "rte":                {"country": "irl", "type": "ed_journalism", "institution_name": "RTÉ News"},
 }
 
-FINAL_COLS = ["url", "title", "date", "text", "source", "country", "type", "institution_name"]
+FINAL_COLS = ["url", "title", "date", "text", "source", "country", "type", "institution_name", "language"]
+
+
+# ----------------------------------------------------------
+# Post-processing: title-only HE filter + language flagging
+# ----------------------------------------------------------
+# Simple rule: remove article only if title contains an HE term
+# AND title does NOT contain a school-level term.
+# This preserves articles about both levels (e.g. "Leaving Cert and CAO").
+
+TITLE_HE_TERMS = [
+    "university", "universities", "college fees", "college ranking",
+    "undergraduate", "postgraduate", "phd", "doctoral",
+    "campus", "tuition fees", "university ranking",
+    "lecturer", "lecturers", "higher education",
+    "third level", "third-level",
+]
+
+TITLE_SCHOOL_TERMS = [
+    "school", "schools", "teacher", "teachers", "pupil", "pupils",
+    "principal", "classroom", "headteacher", "head teacher",
+    "leaving cert", "junior cycle", "senior cycle", "transition year",
+    "junior cert", "sna", "special needs assistant", "deis",
+    "national school", "post-primary", "special school",
+    "school meals", "school transport", "school building",
+    "school staff", "school secretary", "school closure",
+    "curriculum", "inspectorate", "enrolment",
+    "primary", "secondary", "education minister",
+    # Scotland
+    "curriculum for excellence", "additional support needs",
+]
+
+# Irish language indicators — common Irish function words
+# An article with 8+ of these in the body is likely fully in Irish.
+# Articles with fewer are English articles using occasional Irish terms.
+IRISH_INDICATORS = [
+    " agus ", " na ", " ar ", " le ", " do ", " sa ", " den ",
+    " ag ", " ón ", " go ", " tá ", " bhí ", " seo ", " sin ",
+    " scoil ", " oideachas ", " gaeilge ", " múinteoirí ",
+    " an t", " i g", " i m", " i n", " i d", " i b",
+]
+IRISH_THRESHOLD = 8  # need 8+ matches to flag as Irish
+
+
+def _postprocess(df):
+    """Clean inference data: drop empty text, title-only HE filter, flag language, dedupe."""
+    # 1. Drop empty text
+    before = len(df)
+    df = df.dropna(subset=["text"])
+    df = df[df["text"].astype(str).str.strip() != ""]
+    print(f"  Dropped {before - len(df)} empty-text rows → {len(df)}")
+
+    # 2. Title-only HE filter
+    before = len(df)
+    df = df.copy()
+
+    def _should_remove(title):
+        t = str(title).lower()
+        has_he = any(term in t for term in TITLE_HE_TERMS)
+        if not has_he:
+            return False
+        has_school = any(term in t for term in TITLE_SCHOOL_TERMS)
+        return not has_school  # remove only if HE in title AND no school term
+
+    mask = df["title"].apply(_should_remove)
+    removed_df = df[mask]
+    if len(removed_df) > 0:
+        print(f"  HE title removals:")
+        for _, row in removed_df.head(10).iterrows():
+            print(f"    {row.get('source','')} | {str(row.get('title',''))[:70]}")
+    df = df[~mask]
+    print(f"  Education filter: {before} → {len(df)} (removed {before - len(df)})")
+
+    # 3. Language flagging (word-frequency, not langdetect)
+    def _detect_lang(text):
+        t = str(text).lower()
+        if len(t) < 50:
+            return "en"
+        matches = sum(1 for term in IRISH_INDICATORS if term in t)
+        return "ga" if matches >= IRISH_THRESHOLD else "en"
+
+    df["language"] = df["text"].apply(_detect_lang)
+    non_en = df[df["language"] != "en"]
+    if len(non_en) > 0:
+        print(f"  Non-English articles: {non_en['language'].value_counts().to_dict()}")
+    else:
+        print(f"  All articles detected as English")
+
+    # 4. Deduplicate
+    before = len(df)
+    df = df.drop_duplicates(subset=["url"])
+    if before - len(df) > 0:
+        print(f"  Deduped: {before} → {len(df)}")
+
+    return df
 
 
 def parse_args():
@@ -341,6 +429,11 @@ def main():
             filename_stem = until_str
         out = inference_dir / f"{filename_stem}.csv"
         merged = pd.concat(inference_frames, ignore_index=True)
+
+        # --- Post-processing ---
+        print(f"\n--- Post-processing ({len(merged)} raw articles) ---")
+        merged = _postprocess(merged)
+
         merged.to_csv(out, index=False)
         print(f"\n✅ Wrote {len(merged)} articles to {out}")
         _write_scrape_log(inference_dir, since_date, until_date, out.name, inference_frames, country)

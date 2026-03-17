@@ -60,10 +60,6 @@ def scrape_gov_ie(since_date=None, until_date=None, output_path=None, append=Fal
     all_articles = []
     seen_urls = set()
 
-    # Gov.ie migrated old content on 2025-04-11, so many pre-2023
-    # articles show that date. We treat it as suspect.
-    MIGRATION_DATE = "2025-04-11"
-
     print("Starting Irish Government (Dept of Education) scrape...")
 
     for search_url in SEARCH_URLS:
@@ -117,10 +113,6 @@ def scrape_gov_ie(since_date=None, until_date=None, output_path=None, append=Fal
                         pub_date = datetime.strptime(date_str[:10], "%Y-%m-%d").date()
                     except ValueError:
                         pass
-
-                # Skip migration-date articles (actually pre-2019 content)
-                if date_str == MIGRATION_DATE:
-                    continue
 
                 # Date filters
                 if pub_date and until_date and pub_date > until_date:
