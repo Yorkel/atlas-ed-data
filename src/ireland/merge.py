@@ -43,6 +43,21 @@ SOURCES = {
         "type": "ed_journalism",
         "institution_name": "Education Matters",
     },
+    "irish_times": {
+        "file": IRE_DIR / "irish_times.csv",
+        "type": "ed_journalism",
+        "institution_name": "Irish Times Education",
+    },
+    "ncse": {
+        "file": IRE_DIR / "ncse.csv",
+        "type": "ed_res_org",
+        "institution_name": "NCSE",
+    },
+    "childrens_rights": {
+        "file": IRE_DIR / "childrens_rights.csv",
+        "type": "advocacy",
+        "institution_name": "Children's Rights Alliance",
+    },
 }
 
 FINAL_COLS = ["url", "title", "date", "text", "source", "country", "type", "institution_name"]

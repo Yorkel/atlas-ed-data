@@ -63,11 +63,24 @@ def scrape_teaching_council(since_date=None, until_date=None, output_path=None, 
 
         print(f"  Got {len(posts)} posts")
 
+        # Skip words for admin/maintenance posts
+        SKIP_WORDS = ["maintenance", "downtime", "scheduled outage", "system update"]
+
         for post in posts:
             pub_date = datetime.fromisoformat(post["date"]).date()
             title = BeautifulSoup(post["title"]["rendered"], "html.parser").get_text(strip=True)
             text = parse_content(post["content"]["rendered"])
             url = post["link"]
+
+            # Skip admin/maintenance posts
+            if any(w in title.lower() for w in SKIP_WORDS):
+                print(f"    Skipping admin post: {title[:60]}")
+                continue
+
+            # Skip posts with no text
+            if not text.strip():
+                print(f"    Skipping empty post: {title[:60]}")
+                continue
 
             all_articles.append({
                 "url": url,

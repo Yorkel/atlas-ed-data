@@ -53,6 +53,9 @@ from ireland.tasc import scrape_tasc
 from ireland.erc import scrape_erc
 from ireland.teaching_council import scrape_teaching_council
 from ireland.education_matters import scrape_education_matters
+from ireland.irish_times import scrape_irish_times
+from ireland.ncse import scrape_ncse
+from ireland.childrens_rights import scrape_childrens_rights
 
 try:
     from england.schoolsweek import scrape_schoolsweek
@@ -109,6 +112,9 @@ SCRAPERS = {
         ("erc",                 scrape_erc),
         ("teaching_council",    scrape_teaching_council),
         ("education_matters",   scrape_education_matters),
+        ("irish_times",         scrape_irish_times),
+        ("ncse",                scrape_ncse),
+        ("childrens_rights",    scrape_childrens_rights),
     ],
 }
 
@@ -145,6 +151,9 @@ SOURCE_META = {
     "erc":                {"country": "irl", "type": "ed_res_org",    "institution_name": "Educational Research Centre"},
     "teaching_council":   {"country": "irl", "type": "prof_body",     "institution_name": "Teaching Council"},
     "education_matters":  {"country": "irl", "type": "ed_journalism", "institution_name": "Education Matters"},
+    "irish_times":        {"country": "irl", "type": "ed_journalism", "institution_name": "Irish Times Education"},
+    "ncse":               {"country": "irl", "type": "ed_res_org",    "institution_name": "NCSE"},
+    "childrens_rights":   {"country": "irl", "type": "advocacy",      "institution_name": "Children's Rights Alliance"},
 }
 
 FINAL_COLS = ["url", "title", "date", "text", "source", "country", "type", "institution_name"]
