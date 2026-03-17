@@ -90,7 +90,7 @@ def _get_search_results(base_url, since_date=None, until_date=None):
                     except ValueError:
                         continue
 
-            # Date filtering
+            # Date filtering (must come BEFORE content filter so skipped_future counts correctly)
             if pub_date:
                 if until_date and pub_date > until_date:
                     skipped_future += 1
@@ -98,6 +98,18 @@ def _get_search_results(base_url, since_date=None, until_date=None):
                 if since_date and pub_date < since_date:
                     stop_early = True
                     break  # results are newest-first, so stop
+
+            # Skip administrative publications (FOIs, minutes, impact assessments)
+            title_lower = title.lower()
+            SKIP_PATTERNS = [
+                "foi release", "foi review", "foi request",
+                "minutes:", "minutes -", "meeting minutes",
+                "equality impact assessment", "impact assessment",
+                "child rights and wellbeing impact",
+                "terms of reference",
+            ]
+            if any(pat in title_lower for pat in SKIP_PATTERNS):
+                continue
 
             results.append({"url": href, "title": title, "date": pub_date})
             new_this_page += 1
@@ -134,8 +146,8 @@ def _scrape_article(url):
 
     soup = BeautifulSoup(r.text, "lxml")
 
-    # Main content — gov.scot uses div.body-content or article
-    content = soup.find("div", class_="body-content") or soup.find("article")
+    # Main content — gov.scot uses <main> tag
+    content = soup.find("main") or soup.find("div", class_="body-content") or soup.find("article")
     if content:
         for t in content.find_all(["script", "style", "figure", "aside", "nav"]):
             t.decompose()

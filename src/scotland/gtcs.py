@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from pathlib import Path
 import time
+import re
 from datetime import datetime
 
 # ----------------------------------------------------------
@@ -11,7 +12,7 @@ from datetime import datetime
 BASE = "https://www.gtcs.org.uk"
 START_URL = "https://www.gtcs.org.uk/news"
 
-_DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "data" / "training" / "scotland" / "gtcs.csv"
+_DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "data" / "test" / "scotland_gtcs.csv"
 
 HEADERS = {
     "User-Agent": (
@@ -21,87 +22,106 @@ HEADERS = {
     )
 }
 
-
-# ----------------------------------------------------------
-# Extract article links from listing page
-# ----------------------------------------------------------
-def extract_links(html):
-    soup = BeautifulSoup(html, "html.parser")
-    links = []
-    for h2 in soup.find_all("h2"):
-        a = h2.find("a", href=True)
-        if a:
-            href = a["href"].strip()
-            if not href.startswith("http"):
-                href = BASE + href
-            links.append(href)
-    return links
+_DATE_RE = re.compile(r"(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})")
 
 
 # ----------------------------------------------------------
-# Extract next page URL
+# Extract articles (link + date) from listing page
 # ----------------------------------------------------------
-def extract_next_page(html):
-    soup = BeautifulSoup(html, "html.parser")
-    next_a = soup.select_one("a.next, a[rel='next']")
-    if next_a and next_a.get("href"):
-        href = next_a["href"].strip()
-        return href if href.startswith("http") else BASE + href
-    return None
+def _extract_articles_from_listing(soup):
+    """Extract article URLs and dates from the listing page."""
+    articles = []
+    seen_hrefs = set()
+
+    for a in soup.find_all("a", href=True):
+        href = a["href"].strip()
+        if "/news/news-and-updates/" not in href:
+            continue
+        if not href.startswith("http"):
+            href = BASE + href
+        if href in seen_hrefs:
+            continue
+        seen_hrefs.add(href)
+
+        # Find date in parent/grandparent text
+        pub_date = None
+        for ancestor in [a.parent, a.parent.parent if a.parent else None]:
+            if ancestor is None:
+                continue
+            text = ancestor.get_text(" ", strip=True)
+            m = _DATE_RE.search(text)
+            if m:
+                try:
+                    pub_date = datetime.strptime(m.group(1), "%d %B %Y").date()
+                except ValueError:
+                    pass
+                break
+
+        articles.append({"url": href, "date": pub_date})
+
+    return articles
 
 
 # ----------------------------------------------------------
-# Scrape a single article
+# Scrape a single article page for title + text
 # ----------------------------------------------------------
-def scrape_article(url, since_date=None, until_date=None):
+def _scrape_article(url):
     try:
         r = requests.get(url, headers=HEADERS, timeout=30)
     except requests.RequestException as e:
-        print(f"  Failed to fetch {url}: {e}")
-        return None
+        print(f"    Failed: {url} — {e}")
+        return "", ""
 
-    soup = BeautifulSoup(r.text, "html.parser")
+    if r.status_code != 200:
+        print(f"    HTTP {r.status_code}: {url}")
+        return "", ""
 
-    title_tag = soup.find("h1")
-    title = title_tag.get_text(strip=True) if title_tag else ""
+    soup = BeautifulSoup(r.text, "lxml")
 
-    # Try to find date — GTCS uses various date formats
-    date_tag = soup.find("time") or soup.find("span", class_=lambda c: c and "date" in c.lower() if c else False)
-    pub_date = None
-    if date_tag:
-        date_text = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-        for fmt in ["%Y-%m-%d", "%d %B %Y", "%d/%m/%Y", "%B %d, %Y"]:
-            try:
-                pub_date = datetime.strptime(date_text[:10] if fmt == "%Y-%m-%d" else date_text, fmt).date()
-                break
-            except ValueError:
-                continue
+    # Title
+    h1 = soup.find("h1")
+    title = h1.get_text(strip=True) if h1 else ""
 
-    if pub_date:
-        if since_date and pub_date < since_date:
-            return "STOP"
-        if until_date and pub_date > until_date:
-            return "SKIP"
-
-    # Main content
-    content = soup.find("article") or soup.find("div", class_=lambda c: c and "content" in c.lower() if c else False)
-    if content:
-        for t in content.find_all(["script", "style", "figure", "aside", "nav"]):
+    # Text — paragraphs inside <main>
+    main = soup.find("main")
+    if main:
+        for t in main.find_all(["script", "style", "figure", "aside", "nav", "footer", "header"]):
             t.decompose()
         text = "\n".join(
             p.get_text(" ", strip=True)
-            for p in content.find_all("p")
+            for p in main.find_all("p")
             if p.get_text(strip=True)
         )
     else:
         text = ""
 
-    return {
-        "url": url,
-        "title": title,
-        "date": pub_date.strftime("%Y-%m-%d") if pub_date else "",
-        "text": text,
-    }
+    return title, text
+
+
+# ----------------------------------------------------------
+# Check pagination — find next page link
+# ----------------------------------------------------------
+def _find_next_page(soup):
+    # Look for pagination links
+    for a in soup.find_all("a", href=True):
+        text = a.get_text(strip=True).lower()
+        if text in ["next", "next page", "›", "»", "next ›"]:
+            href = a["href"].strip()
+            if not href.startswith("http"):
+                href = BASE + href
+            return href
+
+    # Also check for numbered pages
+    current_page = soup.find("span", class_=lambda c: c and "current" in c.lower() if c else False)
+    if current_page:
+        next_a = current_page.find_next("a", href=True)
+        if next_a:
+            href = next_a["href"].strip()
+            if not href.startswith("http"):
+                href = BASE + href
+            return href
+
+    return None
 
 
 # ----------------------------------------------------------
@@ -112,42 +132,83 @@ def scrape_gtcs(since_date=None, until_date=None, output_path=None, append=False
     seen = set()
     url = START_URL
     page = 1
+    max_pages = 20
 
     print("Starting GTCS scrape...")
 
-    while url:
-        print(f"  Scraping page {page}: {url}")
-        r = requests.get(url, headers=HEADERS, timeout=30)
-        links = extract_links(r.text)
-        print(f"  Extracted {len(links)} article links")
+    while page <= max_pages:
+        if page == 1:
+            url = START_URL
+        else:
+            url = f"{START_URL}?f308a811_page={page}"
 
-        if not links:
+        print(f"  Page {page}: {url}")
+
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=30)
+        except requests.RequestException as e:
+            print(f"    Request failed: {e}")
+            break
+
+        if r.status_code != 200:
+            print(f"    HTTP {r.status_code} — stopping.")
+            break
+
+        soup = BeautifulSoup(r.text, "lxml")
+        listing = _extract_articles_from_listing(soup)
+        print(f"  Found {len(listing)} article links")
+
+        if not listing:
             print("  No links found — stopping.")
             break
 
-        for link in links:
-            if link in seen:
+        new_this_page = 0
+        stop_early = False
+        for item in listing:
+            if item["url"] in seen:
                 continue
-            seen.add(link)
-            print(f"    Scraping: {link}")
+            seen.add(item["url"])
 
-            result = scrape_article(link, since_date=since_date, until_date=until_date)
+            pub_date = item["date"]
 
-            if result == "STOP":
-                print("  Reached cutoff date — stopping.")
-                _save(all_articles, output_path, append)
-                return all_articles
-            if result == "SKIP":
+            # Date filtering
+            if pub_date:
+                if until_date and pub_date > until_date:
+                    continue
+                if since_date and pub_date < since_date:
+                    stop_early = True
+                    break
+
+            # Fetch article text
+            title, text = _scrape_article(item["url"])
+
+            if not text.strip():
+                print(f"    No text: {item['url'][:60]}")
                 continue
-            if result:
-                all_articles.append(result)
 
+            all_articles.append({
+                "url": item["url"],
+                "title": title,
+                "date": pub_date.strftime("%Y-%m-%d") if pub_date else "",
+                "text": text,
+            })
+            new_this_page += 1
+            print(f"    {pub_date} | {title[:60]}")
             time.sleep(1)
 
-        url = extract_next_page(r.text)
+        if stop_early:
+            print(f"  Reached since_date cutoff — stopping.")
+            break
+
+        if new_this_page == 0:
+            print(f"  No new articles — stopping.")
+            break
+
+        print(f"  {len(all_articles)} articles so far")
         page += 1
         time.sleep(1)
 
+    print(f"\n  Done. {len(all_articles)} articles.")
     _save(all_articles, output_path, append)
     return all_articles
 

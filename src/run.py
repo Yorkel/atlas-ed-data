@@ -41,11 +41,10 @@ from england.fftlabs import scrape_fft_datalab
 from england.fed import scrape_fed
 
 from scotland.gov_scot import scrape_gov_scot
-from scotland.education_scotland import scrape_education_scotland
 from scotland.sera import scrape_sera
-from scotland.audit_scotland import scrape_audit_scotland
 from scotland.gtcs import scrape_gtcs
-from scotland.tes_scotland import scrape_tes_scotland
+from scotland.ades import scrape_ades
+from scotland.children_in_scotland import scrape_children_in_scotland
 
 from ireland.gov_ie import scrape_gov_ie
 from ireland.esri import scrape_esri
@@ -96,12 +95,11 @@ TRAINING_FILENAMES = {
 SCRAPERS = {
     "eng": [],   # populated below after optional import
     "sco": [
-        ("gov_scot",            scrape_gov_scot),
-        ("education_scotland",  scrape_education_scotland),
-        ("sera",                scrape_sera),
-        ("audit_scotland",      scrape_audit_scotland),
-        ("gtcs",                scrape_gtcs),
-        ("tes_scotland",        scrape_tes_scotland),
+        ("gov_scot",                scrape_gov_scot),
+        ("sera",                    scrape_sera),
+        ("gtcs",                    scrape_gtcs),
+        ("ades",                    scrape_ades),
+        ("children_in_scotland",    scrape_children_in_scotland),
     ],
     "irl": [
         ("gov_ie",              scrape_gov_ie),
@@ -127,27 +125,26 @@ _eng += [
 
 # Metadata added to merged output — extend when Scotland/Ireland sources are added
 SOURCE_META = {
-    "schoolsweek": {"country": "eng", "type": "ed_journalism", "institution_name": "Schools Week"},
+    "schoolsweek": {"country": "eng", "type": "ed_media",       "institution_name": "Schools Week"},
     "gov":         {"country": "eng", "type": "government",    "institution_name": None},  # uses primary_org
     "epi":         {"country": "eng", "type": "think_tank",    "institution_name": "Education Policy Institute"},
-    "nuffield":    {"country": "eng", "type": "think_tank",    "institution_name": "Nuffield Foundation"},
-    "fft":         {"country": "eng", "type": "ed_res_org",    "institution_name": "FFT Education Datalab"},
+    "nuffield":    {"country": "eng", "type": "funder",        "institution_name": "Nuffield Foundation"},
+    "fft":         {"country": "eng", "type": "research_org",  "institution_name": "FFT Education Datalab"},
     "fed":         {"country": "eng", "type": "prof_body",     "institution_name": "Foundation for Educational Development"},
     # Scotland
-    "gov_scot":           {"country": "sco", "type": "government",    "institution_name": "Scottish Government"},
-    "education_scotland": {"country": "sco", "type": "gov_agency",    "institution_name": "Education Scotland"},
-    "sera":               {"country": "sco", "type": "think_tank",    "institution_name": "SERA"},
-    "audit_scotland":     {"country": "sco", "type": "ed_res_org",    "institution_name": "Audit Scotland"},
-    "gtcs":               {"country": "sco", "type": "prof_body",     "institution_name": "GTCS"},
-    "tes_scotland":       {"country": "sco", "type": "ed_journalism", "institution_name": "TES Scotland"},
+    "gov_scot":              {"country": "sco", "type": "government",      "institution_name": "Scottish Government"},
+    "sera":                  {"country": "sco", "type": "think_tank",      "institution_name": "SERA"},
+    "gtcs":                  {"country": "sco", "type": "prof_body",       "institution_name": "GTCS"},
+    "ades":                  {"country": "sco", "type": "prof_body",       "institution_name": "ADES"},
+    "children_in_scotland":  {"country": "sco", "type": "civil_society",   "institution_name": "Children in Scotland"},
     # Ireland
     "gov_ie":             {"country": "irl", "type": "government",    "institution_name": "Department of Education (Ireland)"},
     "esri":               {"country": "irl", "type": "think_tank",    "institution_name": "ESRI"},
-    "erc":                {"country": "irl", "type": "ed_res_org",    "institution_name": "Educational Research Centre"},
+    "erc":                {"country": "irl", "type": "research_org",  "institution_name": "Educational Research Centre"},
     "teaching_council":   {"country": "irl", "type": "prof_body",     "institution_name": "Teaching Council"},
-    "education_matters":  {"country": "irl", "type": "ed_journalism", "institution_name": "Education Matters"},
-    "thejournal":         {"country": "irl", "type": "ed_journalism", "institution_name": "TheJournal.ie"},
-    "rte":                {"country": "irl", "type": "ed_journalism", "institution_name": "RTÉ News"},
+    "education_matters":  {"country": "irl", "type": "ed_media",      "institution_name": "Education Matters"},
+    "thejournal":         {"country": "irl", "type": "ed_media",      "institution_name": "TheJournal.ie"},
+    "rte":                {"country": "irl", "type": "ed_media",      "institution_name": "RTÉ News"},
 }
 
 FINAL_COLS = ["url", "title", "date", "text", "source", "country", "type", "institution_name", "language"]
