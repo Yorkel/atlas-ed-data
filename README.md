@@ -82,43 +82,60 @@ All inference runs automatically apply:
 
 ---
 
+## Architecture
+
+```
+┌──────────────┐     ┌───────────┐     ┌──────────────┐     ┌───────────┐
+│  This repo   │────▶│ Supabase  │◀────│ Analysis repo│────▶│ Streamlit │
+│  (scrapers)  │     │ (storage) │     │ (NMF/BERTopic│     │ dashboard │
+└──────────────┘     └───────────┘     └──────────────┘     └───────────┘
+       ↑                                       ↑
+  GitHub Actions                         GitHub Actions
+  (weekly, Fridays)                      (after new data)
+```
+
 ## Project structure
 
 ```
-src/
-├── run.py                      # Pipeline entry point — all modes and countries
-├── england/                    # England scrapers
-│   ├── dfe.py                  # GOV.UK education (DfE)
-│   ├── schoolsweek.py          # Schools Week
-│   ├── epi.py                  # Education Policy Institute
-│   ├── nuffield.py             # Nuffield Foundation
-│   ├── fftlabs.py              # FFT Education Datalab
-│   └── fed.py                  # Foundation for Educational Development
-├── scotland/                   # Scotland scrapers
-│   ├── gov_scot.py             # Scottish Government (news + publications)
-│   ├── sera.py                 # SERA
-│   ├── gtcs.py                 # GTCS
-│   ├── ades.py                 # ADES
-│   └── children_in_scotland.py # Children in Scotland
-└── ireland/                    # Ireland scrapers
-    ├── gov_ie.py               # Dept of Education (gov.ie)
-    ├── esri.py                 # ESRI
-    ├── erc.py                  # Educational Research Centre
-    ├── teaching_council.py     # Teaching Council
-    ├── education_matters.py    # Education Matters
-    ├── thejournal.py           # TheJournal.ie (login-walled, 0 articles currently)
-    └── rte.py                  # RTÉ News (no archive, weekly only)
-
-data/                           # Not in repo — regenerate by running scrapers
-├── training/england/           # England training corpus (Jan 2023 – Dec 2025)
-└── inference/
-    ├── england/                # Weekly CSVs from Jan 2026
-    ├── ireland/                # Retro (2025-12-31.csv) + weekly CSVs
-    └── scotland/               # Retro (2025-12-31.csv) + weekly CSVs
-
-docs/
-├── scot_ire_dataset.md         # Full pipeline and dataset documentation
-└── dataset_analysis.md         # Comparative discourse ecosystem analysis
+atlas-ed-data/
+├── README.md
+├── LICENSE
+├── requirements.txt
+├── docs/
+│   ├── dataset_analysis.md     # "Whose Voices Shape Education Policy?" analysis
+│   ├── scot_ire_dataset.md     # Pipeline decisions & scraper findings log
+│   ├── ethics.md               # Data ethics & responsible scraping
+│   └── scrape_log.md           # Auto-generated log of each scrape run
+├── src/
+│   ├── run.py                  # Main pipeline entry point — all modes and countries
+│   ├── seed_supabase.py        # Push data to Supabase (deployment)
+│   ├── england/
+│   │   ├── dfe.py              # Department for Education (GOV.UK)
+│   │   ├── schoolsweek.py      # Schools Week
+│   │   ├── epi.py              # Education Policy Institute
+│   │   ├── nuffield.py         # Nuffield Foundation
+│   │   ├── fftlabs.py          # FFT Education Datalab
+│   │   └── fed.py              # Forum for Education & Development
+│   ├── ireland/
+│   │   ├── gov_ie.py           # Dept of Education (gov.ie)
+│   │   ├── esri.py             # ESRI
+│   │   ├── erc.py              # Educational Research Centre
+│   │   ├── teaching_council.py # Teaching Council
+│   │   ├── education_matters.py# Education Matters
+│   │   ├── rte.py              # RTÉ News (weekly only — no archive)
+│   │   └── thejournal.py       # TheJournal.ie (currently login-walled)
+│   └── scotland/
+│       ├── gov_scot.py         # Scottish Government (news + filtered publications)
+│       ├── sera.py             # SERA
+│       ├── gtcs.py             # GTC Scotland
+│       ├── ades.py             # ADES
+│       └── children_in_scotland.py # Children in Scotland
+└── data/                       # Not in git — regenerate by running scrapers
+    ├── training/england/       # England training corpus (Jan 2023 – Dec 2025)
+    └── inference/
+        ├── england/            # Weekly CSVs from Jan 2026
+        ├── ireland/            # Retro (2025-12-31.csv) + weekly CSVs
+        └── scotland/           # Retro (2025-12-31.csv) + weekly CSVs
 ```
 
 ---

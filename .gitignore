@@ -214,9 +214,8 @@ __marimo__/
 # All data folders (too large for git — outputs of scrapers)
 data/
 
-# Local-only docs (not for repo)
-docs/todo.md
-docs/project_log.md
+# Internal working notes (not for public repo)
+docs/internal/
 
 # Virtual environments
 venv/
