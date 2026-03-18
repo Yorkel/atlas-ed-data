@@ -248,9 +248,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Education Policy Scraper")
     parser.add_argument(
         "--country",
-        choices=["eng", "sco", "irl"],
+        choices=["eng", "sco", "irl", "all"],
         default="eng",
-        help="Which country's sources to scrape (default: eng).",
+        help="Which country's sources to scrape, or 'all' for all three (default: eng).",
     )
     parser.add_argument(
         "--since",
@@ -347,9 +347,8 @@ def _validate_inference(df, filename):
         print(f"✅ Validation passed: {len(df)} articles, all columns present, no empty text")
 
 
-def main():
-    args = parse_args()
-    country = args.country
+def _run_country(country, args):
+    """Run the scraping pipeline for a single country."""
     country_dir = COUNTRY_DIR[country]
     since_date = args.since or RETROSPECTIVE_START[country]
     until_date = args.until
@@ -440,6 +439,18 @@ def main():
     print(f"Done. Total articles scraped: {total}")
     if is_training:
         print("Next step: run merge.py to update data/training/training_data.csv")
+
+
+def main():
+    args = parse_args()
+    if args.country == "all":
+        for country in ["eng", "irl", "sco"]:
+            print(f"\n{'#'*60}")
+            print(f"# COUNTRY: {country.upper()}")
+            print(f"{'#'*60}")
+            _run_country(country, args)
+    else:
+        _run_country(args.country, args)
 
 
 if __name__ == "__main__":

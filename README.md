@@ -1,27 +1,53 @@
-# atlas-ed-data
+# AtlasED — Education Policy Data Pipeline
 
-Data collection pipeline for the **AtlasED** project — a cross-jurisdictional analysis of education policy discourse across England, Scotland and the Republic of Ireland.
+> **Whose voices shape education policy?** This pipeline builds a cross-jurisdictional corpus that reveals structural asymmetries in who dominates education policy discourse across England, Scotland and the Republic of Ireland.
 
-This repo scrapes, cleans and structures education policy articles from government bodies, think tanks, research organisations, professional bodies and education media. The resulting corpus feeds the [AtlasED analysis pipeline](https://github.com/Yorkel/atlas-ed-pipeline) for NMF topic modelling, BERTopic clustering, and Jensen-Shannon divergence analysis.
+[![CI](https://github.com/Yorkel/atlas-ed-data/actions/workflows/weekly_scrape.yml/badge.svg)](https://github.com/Yorkel/atlas-ed-data/actions/workflows/weekly_scrape.yml)
 
-UCL Grand Challenges Project | UCL Institute of Education | 2026
+**UCL Institute of Education** | 2026
+
+*Built as part of a Level 7 AI Engineering Apprenticeship. Originally developed as an independent strand of the [ESRC Education Research Programme](https://educationresearchprogramme.org/). Cross-jurisdictional expansion to Scotland and Ireland funded by a UCL Grand Challenges Inequality Catalyst Grant.*
 
 ---
 
-## Dataset summary
+## The problem
 
-| Country | Sources | Articles (retro) | Articles (weekly) | Period |
+Education policy in the UK and Ireland is debated by government, think tanks, unions, researchers and the media — but not equally. Some voices are amplified; others are structurally absent. Understanding *who speaks* is as important as understanding *what they say*.
+
+This matters for policymakers, researchers, and the public: if certain actors dominate discourse, policy framing — and ultimately decisions — may be systematically biased.
+
+AtlasED collects education policy articles from **16 sources across 3 countries**, cleans and structures them into a research corpus, and feeds them into a topic modelling pipeline that measures how policy framing diverges across jurisdictions.
+
+## What we found (before any modelling)
+
+The data collection process itself revealed a structural finding:
+
+| | England | Ireland | Scotland |
+|---|---|---|---|
+| **Government share of corpus** | 17% | 77% | 37% |
+| **Education journalism share** | 69% | 3% | 0% |
+| **Free dedicated education outlet** | Schools Week | None | None |
+
+**England has a rich, independent education media layer** (Schools Week publishes ~900 articles/year). **Scotland and Ireland do not** — TES Scotland, Irish Times, and The Scotsman are all paywalled.
+
+**Smaller nations rely almost entirely on institutional voices; England has an independent media layer that Scotland and Ireland lack.**
+
+This is not a data collection limitation — it is the data.
+
+---
+
+## The corpus
+
+| Country | Sources | Training | Inference (retro) | Inference (weekly) |
 |---|---|---|---|---|
-| **England** | 6 | 3,943 | 207 (9 weeks) | Jan 2023 – Mar 2026 |
-| **Ireland** | 5 | 1,036 | 64 (9 weeks) | Jan 2023 – Mar 2026 |
-| **Scotland** | 5 | 511 | 107 (9 weeks) | Jan 2023 – Mar 2026 |
-| **Total** | **16** | **5,490** | **378** | |
+| **England** | 6 | 3,943 articles | — | 207 (9 weeks) |
+| **Ireland** | 5 | — | 1,036 articles | 64 (9 weeks) |
+| **Scotland** | 5 | — | 511 articles | 107 (9 weeks) |
+| **Total** | **16** | | | **5,868 articles** |
 
-England is training data (NMF reference distribution). Scotland and Ireland are inference-only.
+NMF is trained on England as the reference distribution, then applied to Scotland and Ireland to measure how their education policy framing diverges from the English baseline.
 
----
-
-## Sources by country
+### Sources
 
 | Category | England | Ireland | Scotland |
 |---|---|---|---|
@@ -30,38 +56,97 @@ England is training data (NMF reference distribution). Scotland and Ireland are 
 | Funder | Nuffield Foundation | — | — |
 | Research org | FFT Datalab | ERC | — |
 | Professional body | FED | Teaching Council | GTCS, ADES |
-| Ed media | Schools Week | Education Matters | — |
+| Education media | Schools Week | Education Matters | — |
 | Civil society | — | — | Children in Scotland |
-
-See [docs/dataset_analysis.md](docs/dataset_analysis.md) for detailed comparability notes and structural findings.
 
 ---
 
-## How to use
+## Architecture
 
-### Full retrospective scrape (one-off)
+```
+┌─────────────────────┐
+│   atlas-ed-data      │
+│   (this repo)        │
+│                      │
+│   16 sources         │
+│   (3 countries)      │
+│   weekly automated   │
+└──────────┬───────────┘
+           │ seed_supabase.py
+           ▼
+┌─────────────────────┐
+│   Supabase           │
+│                      │
+│   articles_raw       │──────┐
+│   articles_topics    │◀─┐   │
+│   drift_metrics      │◀─┤   │
+└─────────────────────┘  │   │
+                          │   │
+┌─────────────────────┐  │   │
+│   Analysis repo      │──┘   │
+│                      │      │
+│   NMF (K=30)         │◀─────┘
+│   BERTopic           │
+│   JSD divergence     │
+│   Sentiment          │
+└──────────┬───────────┘
+           │
+           ▼
+┌─────────────────────┐
+│   Streamlit          │
+│   dashboard          │
+│                      │
+│   Topic explorer     │
+│   Cross-country      │
+│   comparison         │
+│   Weekly divergence   │
+└─────────────────────┘
+```
+
+**This is a fully automated, end-to-end data pipeline — not a one-off dataset.** GitHub Actions runs every Friday at 06:00 UTC → runs tests → scrapes all 3 countries → pushes to Supabase.
+
+---
+
+## Quick start
+
+### Prerequisites
+
+- Python 3.12+
+- `.env` file with `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` (see `.env.example`)
+
+```bash
+git clone https://github.com/Yorkel/atlas-ed-data.git
+cd atlas-ed-data
+pip install -r requirements.txt
+pytest tests/ -v                    # verify setup — 12 tests, all should pass
+```
+
+### Weekly scrape (all countries)
 
 ```bash
 cd src
-python run.py --country eng --until 2025-12-31    # England training data
-python run.py --country irl --until 2025-12-31    # Ireland inference
-python run.py --country sco --until 2025-12-31    # Scotland inference
+python run.py --country all --since 2026-03-14 --until 2026-03-20 --week 10
+python seed_supabase.py --week 10   # push to Supabase
 ```
 
-### Weekly inference scrape
+> In production, this runs automatically via GitHub Actions every Friday.
+
+### Full retrospective (one-off)
 
 ```bash
-python run.py --country eng --since 2026-03-14 --until 2026-03-20 --week 10
-python run.py --country irl --since 2026-03-14 --until 2026-03-20 --week 10
-python run.py --country sco --since 2026-03-14 --until 2026-03-20 --week 10
+python run.py --country all --until 2025-12-31
+python seed_supabase.py                           # push all data
 ```
 
-### Post-processing (automatic)
+---
 
-All inference runs automatically apply:
-1. **Empty text removal** — drops articles with no body text
-2. **Title-only HE filter** — removes articles clearly about higher education (title contains "university" etc. with no school-level terms)
-3. **Language flagging** — adds `language` column (Irish `ga`, Scots Gaelic `gd`, default `en`)
+## Post-processing
+
+Every scrape automatically applies:
+
+1. **Empty text removal** — drops PDF links, landing pages, login-walled articles
+2. **Title-only HE filter** — removes articles clearly about higher education (e.g. "University fees to rise") while keeping school articles that mention universities in passing
+3. **Language detection** — flags Irish (`ga`) and Scots Gaelic (`gd`) articles
 4. **Deduplication** — by URL
 
 ---
@@ -70,109 +155,82 @@ All inference runs automatically apply:
 
 | Column | Description |
 |---|---|
-| `url` | Source article URL |
+| `url` | Source article URL (unique identifier) |
 | `title` | Article title |
 | `date` | Publication date (YYYY-MM-DD) |
 | `text` | Full article body text |
 | `source` | Source key (e.g. `gov_ie`, `schoolsweek`, `sera`) |
-| `country` | Jurisdiction (`eng`, `sco`, `irl`) |
+| `country` | Jurisdiction: `eng`, `sco`, `irl` |
 | `type` | Source category: `government`, `think_tank`, `funder`, `research_org`, `prof_body`, `ed_media`, `civil_society` |
 | `institution_name` | Full institution name |
-| `language` | ISO 639-1 code (`en`, `ga`, `gd`) |
+| `language` | ISO 639-1 code: `en`, `ga`, `gd` |
 
 ---
-
-## Architecture
-
-```
-┌──────────────┐     ┌───────────┐     ┌──────────────┐     ┌───────────┐
-│  This repo   │────▶│ Supabase  │◀────│ Analysis repo│────▶│ Streamlit │
-│  (scrapers)  │     │ (storage) │     │ (NMF/BERTopic│     │ dashboard │
-└──────────────┘     └───────────┘     └──────────────┘     └───────────┘
-       ↑                                       ↑
-  GitHub Actions                         GitHub Actions
-  (weekly, Fridays)                      (after new data)
-```
 
 ## Project structure
 
 ```
 atlas-ed-data/
-├── README.md
-├── LICENSE
-├── requirements.txt
+├── .github/workflows/
+│   └── weekly_scrape.yml       # Automated Friday scrape + Supabase push
 ├── docs/
+│   ├── pipeline_decisions.md   # All source decisions, architecture, known limitations
 │   ├── dataset_analysis.md     # "Whose Voices Shape Education Policy?" analysis
-│   ├── scot_ire_dataset.md     # Pipeline decisions & scraper findings log
-│   ├── ethics.md               # Data ethics & responsible scraping
-│   └── scrape_log.md           # Auto-generated log of each scrape run
+│   ├── ethics.md               # UCL ethics approval (REC2360) + responsible scraping
+│   └── scrape_log.md           # Auto-generated log of every scrape run
 ├── src/
-│   ├── run.py                  # Main pipeline entry point — all modes and countries
-│   ├── seed_supabase.py        # Push data to Supabase (deployment)
-│   ├── england/
-│   │   ├── dfe.py              # Department for Education (GOV.UK)
-│   │   ├── schoolsweek.py      # Schools Week
-│   │   ├── epi.py              # Education Policy Institute
-│   │   ├── nuffield.py         # Nuffield Foundation
-│   │   ├── fftlabs.py          # FFT Education Datalab
-│   │   └── fed.py              # Forum for Education & Development
-│   ├── ireland/
-│   │   ├── gov_ie.py           # Dept of Education (gov.ie)
-│   │   ├── esri.py             # ESRI
-│   │   ├── erc.py              # Educational Research Centre
-│   │   ├── teaching_council.py # Teaching Council
-│   │   ├── education_matters.py# Education Matters
-│   │   ├── rte.py              # RTÉ News (weekly only — no archive)
-│   │   └── thejournal.py       # TheJournal.ie (currently login-walled)
-│   └── scotland/
-│       ├── gov_scot.py         # Scottish Government (news + filtered publications)
-│       ├── sera.py             # SERA
-│       ├── gtcs.py             # GTC Scotland
-│       ├── ades.py             # ADES
-│       └── children_in_scotland.py # Children in Scotland
-└── data/                       # Not in git — regenerate by running scrapers
-    ├── training/england/       # England training corpus (Jan 2023 – Dec 2025)
-    └── inference/
-        ├── england/            # Weekly CSVs from Jan 2026
-        ├── ireland/            # Retro (2025-12-31.csv) + weekly CSVs
-        └── scotland/           # Retro (2025-12-31.csv) + weekly CSVs
+│   ├── run.py                  # Main pipeline — scrape, clean, save
+│   ├── seed_supabase.py        # Push to Supabase (articles_raw table)
+│   ├── england/                # 6 scrapers: DfE, Schools Week, EPI, Nuffield, FFT, FED
+│   ├── ireland/                # 7 scrapers: Gov.ie, ESRI, ERC, Teaching Council, Ed Matters, RTÉ, TheJournal
+│   └── scotland/               # 5 scrapers: Gov.scot, SERA, GTCS, ADES, Children in Scotland
+├── tests/
+│   └── test_pipeline.py        # 12 tests: imports, schema validation, Supabase connection
+├── requirements.txt            # 8 dependencies
+└── data/                       # Gitignored — regenerate by running scrapers
+    ├── training/england/       # 3,943 articles (Jan 2023 – Dec 2025)
+    └── inference/{eng,irl,sco}/ # Retro + weekly CSVs
 ```
 
 ---
 
-## Key findings from data collection
+## Extending the pipeline
 
-The data collection process itself revealed structural differences in how education policy is publicly debated across the three jurisdictions:
+Adding a new source requires one scraper file and two lines of registration:
 
-- **England** has a mature, open education media ecosystem (Schools Week = 69% of corpus)
-- **Scotland and Ireland** lack free dedicated education journalism — discourse is dominated by government and institutional voices
-- **Government share:** Ireland 77%, Scotland 37%, England 18%
-
-These differences are not data collection limitations — they are findings about the structure of education policy discourse. See [docs/dataset_analysis.md](docs/dataset_analysis.md).
-
----
-
-## Adding a new source
-
-1. Write scraper in `src/<country>/sourcename.py` with standard interface:
 ```python
-def scrape_sourcename(since_date=None, until_date=None, output_path=None, append=False):
-    return all_articles  # list of dicts with url, title, date, text
+# 1. Create src/<country>/newsource.py with the standard interface
+def scrape_newsource(since_date: "date | None" = None, until_date: "date | None" = None,
+                     output_path: "str | None" = None, append: bool = False) -> list[dict]:
+    """Scrape News Source via [method]."""
+    # return list of dicts with url, title, date, text
+
+# 2. Register in src/run.py
+SCRAPERS["eng"].append(("newsource", scrape_newsource))
+SOURCE_META["newsource"] = {"country": "eng", "type": "think_tank", "institution_name": "News Source"}
 ```
 
-2. Register in `src/run.py` — add to `SCRAPERS`, `SOURCE_META`
-
-3. Run: `python run.py --country <code> --until 2025-12-31`
+See [docs/pipeline_decisions.md](docs/pipeline_decisions.md) for source selection criteria and the full decision log.
 
 ---
 
-## Installation
+## Ethics
 
-```bash
-pip install -r requirements.txt
-```
+This project has full ethical approval from the UCL Institute of Education Research Ethics Committee (REC2360). All data is from publicly accessible sources. No personal data is collected. No paywalls are circumvented. See [docs/ethics.md](docs/ethics.md).
 
-Dependencies: `requests`, `beautifulsoup4`, `lxml`, `pandas`, `langdetect`
+---
+
+## Known limitations
+
+| Limitation | Detail |
+|---|---|
+| Ireland/Scotland have fewer articles | Structural finding — reflects real media landscape differences |
+| No free education journalism in Scotland/Ireland | TES, Irish Times, Scotsman all paywalled |
+| TheJournal.ie blocked mid-project | Login wall appeared after rate limiting. Kept in pipeline. |
+| Gov.ie migration dates | Historical articles had wrong dates. Fixed via one-off script. |
+| Education Scotland not scrapeable | JS-rendered pages. Would need browser automation. |
+
+See [docs/pipeline_decisions.md](docs/pipeline_decisions.md) §16 for the full table.
 
 ---
 
@@ -182,16 +240,15 @@ Dependencies: `requests`, `beautifulsoup4`, `lxml`, `pandas`, `langdetect`
 |---|---|---|---|
 | Union | NEU | INTO | EIS |
 | Parliament | Westminster Ed Select Committee | Oireachtas | Scottish Parliament |
-| Advocacy | Children's Commissioner | Children's Rights Alliance | *(included)* |
-
-Adding these would require retraining the NMF model.
+| Advocacy | Children's Commissioner | Children's Rights Alliance | *(already included)* |
 
 ---
 
-## Related
+## Related repositories
 
-- **AtlasED analysis pipeline** — NMF, BERTopic, JSD analysis on this corpus (separate repo)
+- **[AtlasED Analysis Pipeline](https://github.com/Yorkel/atlas-ed-pipeline)** — NMF topic modelling, BERTopic, JSD divergence, sentiment analysis
+- **AtlasED Dashboard** — Streamlit app for exploring cross-jurisdictional education policy discourse
 
 ---
-© UCL Institute of Education 2026. All rights reserved.
-Contact l.yorke@ucl.ac.uk for reuse enquiries.
+
+**Licence:** Code and documentation available for academic and non-commercial use. © UCL Institute of Education 2026. For commercial reuse, contact l.yorke@ucl.ac.uk.
