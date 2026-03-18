@@ -170,7 +170,7 @@ def _scrape_section(base_url, link_prefix, section_name,
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_esri(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_esri(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape ESRI education-filtered news and publications via HTML pagination.
 
     Args:

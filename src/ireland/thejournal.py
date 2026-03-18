@@ -122,7 +122,7 @@ def _scrape_article(url, since_date=None, until_date=None):
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_thejournal(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_thejournal(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape TheJournal.ie education news via HTML pagination.
 
     Args:

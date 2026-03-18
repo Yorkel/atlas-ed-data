@@ -56,7 +56,7 @@ def scrape_article(url):
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_gov_ie(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_gov_ie(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape Irish Dept of Education press releases and publications via search page HTML.
 
     Args:

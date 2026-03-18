@@ -127,7 +127,7 @@ def _find_next_page(soup):
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_gtcs(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_gtcs(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape GTC Scotland news via HTML pagination.
 
     Args:

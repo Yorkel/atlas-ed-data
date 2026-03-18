@@ -24,7 +24,7 @@ HEADERS = {
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_ades(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_ades(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape ADES posts via WordPress REST API.
 
     Args:

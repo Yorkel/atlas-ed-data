@@ -146,7 +146,7 @@ def scrape_article(item, since_date=None, until_date=None):
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_nuffield(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_nuffield(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape Nuffield Foundation education news via HTML pagination.
 
     Args:

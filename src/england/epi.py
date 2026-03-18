@@ -116,7 +116,7 @@ def scrape_article(url, since_date=None, until_date=None):
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_epi(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_epi(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape Education Policy Institute publications via HTML pagination.
 
     Args:

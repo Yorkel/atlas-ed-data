@@ -86,7 +86,7 @@ def scrape_article(url, since_date=None, until_date=None):
 # ---------------------------------------------------------
 # Main scraper
 # ---------------------------------------------------------
-def scrape_fed(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_fed(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape Foundation for Educational Development news via HTML pagination.
 
     Args:

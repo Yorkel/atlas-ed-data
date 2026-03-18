@@ -31,7 +31,7 @@ def parse_content(html):
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_education_matters(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_education_matters(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape Education Matters posts via WordPress REST API.
 
     Args:

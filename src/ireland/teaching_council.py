@@ -31,7 +31,7 @@ def parse_content(html):
 # ----------------------------------------------------------
 # Main scraper
 # ----------------------------------------------------------
-def scrape_teaching_council(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_teaching_council(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape Teaching Council news via WordPress REST API.
 
     Args:

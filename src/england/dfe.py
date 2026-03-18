@@ -215,7 +215,7 @@ def get_primary_org(from_field):
 # ------------------------------------------------------
 # MAIN SCRAPER
 # ------------------------------------------------------
-def scrape_dfe(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_dfe(since_date: "date | None" = None, until_date: "date | None" = None, output_path: "str | None" = None, append: bool = False) -> list[dict]:
     """Scrape DfE and related bodies from GOV.UK via HTML pagination.
 
     Args:
