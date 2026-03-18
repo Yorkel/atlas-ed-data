@@ -191,3 +191,7 @@ Adding these would require retraining the NMF model.
 ## Related
 
 - **AtlasED analysis pipeline** — NMF, BERTopic, JSD analysis on this corpus (separate repo)
+
+---
+© UCL Institute of Education 2026. All rights reserved.
+Contact l.yorke@ucl.ac.uk for reuse enquiries.
