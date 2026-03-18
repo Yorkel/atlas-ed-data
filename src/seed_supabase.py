@@ -24,7 +24,11 @@ import re
 from pathlib import Path
 
 import pandas as pd
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # In CI, env vars are injected directly
 from supabase import create_client
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,7 +51,6 @@ BATCH_SIZE = 500
 
 
 def get_client():
-    load_dotenv(ROOT / ".env")
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_KEY")
     if not url or not key:
