@@ -165,6 +165,17 @@ def _scrape_article(url):
 # Main scraper
 # ----------------------------------------------------------
 def scrape_gov_scot(since_date=None, until_date=None, output_path=None, append=False):
+    """Scrape Scottish Government education news and publications via search page HTML.
+
+    Args:
+        since_date: Earliest publication date to include.
+        until_date: Latest publication date to include.
+        output_path: Path to save CSV output.
+        append: If True, append to existing CSV instead of overwriting.
+
+    Returns:
+        List of dicts with keys: url, title, date, text
+    """
     all_articles = []
 
     print("Starting Scottish Government scrape (education-filtered search)...")

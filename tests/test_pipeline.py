@@ -16,7 +16,7 @@ class TestImports:
     """Every scraper module can be imported without error."""
 
     def test_import_england_scrapers(self):
-        from england.dfe import scrape_govuk
+        from england.dfe import scrape_dfe
         from england.schoolsweek import scrape_schoolsweek
         from england.epi import scrape_epi
         from england.nuffield import scrape_nuffield

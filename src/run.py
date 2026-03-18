@@ -34,7 +34,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from england.dfe import scrape_govuk
+from england.dfe import scrape_dfe
 from england.epi import scrape_epi
 from england.nuffield import scrape_nuffield
 from england.fftlabs import scrape_fft_datalab
@@ -116,7 +116,7 @@ _eng = SCRAPERS["eng"]
 if _HAS_SCHOOLSWEEK:
     _eng.append(("schoolsweek", scrape_schoolsweek))
 _eng += [
-    ("gov",      scrape_govuk),
+    ("gov",      scrape_dfe),
     ("epi",      scrape_epi),
     ("nuffield", scrape_nuffield),
     ("fft",      scrape_fft_datalab),

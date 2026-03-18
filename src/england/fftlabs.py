@@ -133,6 +133,17 @@ def scrape_article(url, since_date=None, until_date=None):
 # Main scraper
 # ---------------------------------------------------------
 def scrape_fft_datalab(since_date=None, until_date=None, output_path=None, append=False):
+    """Scrape FFT Education Datalab blog posts via HTML pagination.
+
+    Args:
+        since_date: Earliest publication date to include.
+        until_date: Latest publication date to include.
+        output_path: Path to save CSV output.
+        append: If True, append to existing CSV instead of overwriting.
+
+    Returns:
+        List of dicts with keys: url, title, date, text
+    """
     all_articles = []
     page = 1
 

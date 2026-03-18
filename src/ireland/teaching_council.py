@@ -32,6 +32,17 @@ def parse_content(html):
 # Main scraper
 # ----------------------------------------------------------
 def scrape_teaching_council(since_date=None, until_date=None, output_path=None, append=False):
+    """Scrape Teaching Council news via WordPress REST API.
+
+    Args:
+        since_date: Earliest publication date to include.
+        until_date: Latest publication date to include.
+        output_path: Path to save CSV output.
+        append: If True, append to existing CSV instead of overwriting.
+
+    Returns:
+        List of dicts with keys: url, title, date, text
+    """
     all_articles = []
     page = 1
 

@@ -396,7 +396,24 @@ Can also be triggered manually via `workflow_dispatch`.
 
 ---
 
-## 16. Data columns
+## 16. Known data limitations
+
+| Limitation | Impact | How addressed |
+|---|---|---|
+| Gov.ie migration dates | ~500 articles had wrong dates (2025-04-11/12 instead of real publish date) | Fixed via one-off script fetching real "Published on:" dates from each article page |
+| Ireland/Scotland have fewer articles than England | Ireland 1,036, Scotland 511 vs England 3,943 | Structural finding — reflects real differences in education media landscape, not a data collection failure |
+| No free education journalism in Scotland/Ireland | ed_media category is empty (Scotland) or minimal (Ireland: 33 articles) | Documented as finding about who shapes public discourse in each jurisdiction |
+| TheJournal.ie blocked mid-project | 163 articles lost from Ireland historical dataset | Kept in weekly pipeline — login wall may be temporary. 0 articles in retro. |
+| Empty text articles | PDF links, landing pages, index pages return no paragraph content | Removed during post-processing (171 from Ireland, varying from others) |
+| HE content mixed in | Government education topics include university/college articles | Filtered by title-only HE filter across all three countries |
+| Irish/Scots Gaelic articles | Small number of non-English articles in corpus | Flagged with `language` column (`ga`/`gd`), kept in dataset as a finding about bilingual policy discourse |
+| RTÉ no archive | Only ~37 recent stories visible, 0 for retro period | Included for weekly scrapes going forward only |
+| Children in Scotland no 2023 data | Site only goes back to Jan 2024 | 182 articles from 2024-2025 only. Documented gap. |
+| ADES empty posts | 37 of 87 WP posts are file download links with no text | Skipped during scraping. 50 articles with actual text content kept. |
+
+---
+
+## 17. Data columns
 
 All output CSVs share this schema:
 

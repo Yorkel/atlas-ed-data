@@ -215,7 +215,18 @@ def get_primary_org(from_field):
 # ------------------------------------------------------
 # MAIN SCRAPER
 # ------------------------------------------------------
-def scrape_govuk(since_date=None, until_date=None, output_path=None, append=False):
+def scrape_dfe(since_date=None, until_date=None, output_path=None, append=False):
+    """Scrape DfE and related bodies from GOV.UK via HTML pagination.
+
+    Args:
+        since_date: Earliest publication date to include.
+        until_date: Latest publication date to include.
+        output_path: Path to save CSV output.
+        append: If True, append to existing CSV instead of overwriting.
+
+    Returns:
+        List of dicts with keys: url, title, date, text
+    """
     from datetime import date as date_type
 
     since_str = since_date.strftime("%Y-%m-%d") if since_date else "2023-01-01"
@@ -302,4 +313,4 @@ def _save(df, output_path, append):
 # RUN
 # ------------------------------------------------------
 if __name__ == "__main__":
-    scrape_govuk(output_path=_DEFAULT_OUTPUT)
+    scrape_dfe(output_path=_DEFAULT_OUTPUT)

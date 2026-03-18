@@ -128,6 +128,17 @@ def _find_next_page(soup):
 # Main scraper
 # ----------------------------------------------------------
 def scrape_gtcs(since_date=None, until_date=None, output_path=None, append=False):
+    """Scrape GTC Scotland news via HTML pagination.
+
+    Args:
+        since_date: Earliest publication date to include.
+        until_date: Latest publication date to include.
+        output_path: Path to save CSV output.
+        append: If True, append to existing CSV instead of overwriting.
+
+    Returns:
+        List of dicts with keys: url, title, date, text
+    """
     all_articles = []
     seen = set()
     url = START_URL
