@@ -2,6 +2,15 @@
 
 This document outlines the ethical considerations relevant to the data collected and used by this pipeline, covering data provenance, storage, scraping conduct, representation and the politics of AI-assisted analysis.
 
+## 0. Ethics approval
+
+This project has full ethical approval from the UCL Institute of Education Research Ethics Committee.
+
+- **Reference:** REC2360
+- **Title:** Whose Voices Shape Education Policy? Using AI to Reveal Inequalities in Public Debates Across England, Scotland and the Republic of Ireland
+- **Data protection number:** Z6364106/2026/02/116
+- **Approved:** 16 March 2026
+
 ---
 
 ## 1. Data provenance — all content is publicly available
@@ -21,14 +30,14 @@ No consent is required for collection or analysis. The pipeline does not engage 
 
 - All scraped data is stored **locally only** — the `data/` folder is gitignored and never pushed to any remote repository
 - No scraped content is shared with third parties
-- When data is loaded into Supabase (planned future step), access will be restricted
+- Data is stored in Supabase with row-level security enabled and access restricted via service key
 - The training corpus and inference datasets are used solely for the research and analytical purposes described in this repository
 
 ---
 
 ## 3. Scraping conduct
 
-- All scrapers include polite request delays (0.4–1 second between requests) to avoid placing excessive load on source websites
+- All scrapers include polite request delays (0.5–5 seconds between requests) to avoid placing excessive load on source websites
 - Scrapers identify themselves via a descriptive User-Agent string
 - No authentication bypass, rate limit circumvention or aggressive crawling is used
 - The pipeline only collects content already publicly indexed and accessible
@@ -43,7 +52,9 @@ The selection of sources is a methodological and political decision that shapes 
 
 **What is not included:** Grassroots organisations, teacher unions, parent groups, community voices and practitioner networks are not represented in the current corpus. The pipeline captures what institutions publish, not what teachers, parents or students say. This is a known limitation and is stated explicitly — the downstream analysis examines which voices are amplified in formal policy discourse, not which voices matter in education.
 
-**Cross-jurisdiction design:** Scotland and Republic of Ireland sources will be added in a later phase. Running these through an England-trained model is deliberate — the places where the model's categories fit poorly reveal the England-centric assumptions built into the tool. This is central to the analytical purpose of EduAtlas.
+**Cross-jurisdiction design:** Scotland and Republic of Ireland sources are now included in the corpus. Running these through an England-trained model is deliberate — the places where the model's categories fit poorly reveal the England-centric assumptions built into the tool. This is central to the analytical purpose of AtlasED.
+
+**Paywalled sources excluded:** Several potential sources (TES Scotland, Irish Times, TheJournal.ie) were excluded because their content is behind paywalls or login walls. No paywall circumvention was attempted. This is documented as a structural finding about the education media landscape — free, dedicated education journalism is largely absent in Scotland and Ireland.
 
 ---
 
@@ -57,7 +68,7 @@ This project takes seriously the political assumptions embedded in AI text analy
 
 **Whose documents are included** encodes assumptions about institutional authority — what counts as a legitimate source of policy knowledge.
 
-EduAtlas is designed to make these assumptions visible rather than hide them. It is presented to users as a tool that encodes particular choices, which can and should be interrogated — not as an objective classifier producing authoritative results.
+AtlasED is designed to make these assumptions visible rather than hide them. It is presented to users as a tool that encodes particular choices, which can and should be interrogated — not as an objective classifier producing authoritative results.
 
 **Pipeline boundaries are not neutral:** The weekly inference batches impose an arbitrary time boundary (e.g. 9–15 January). An article published late on the last day of a window may appear in that week's batch or the following one depending on scraper timing. A system that reports "the top education topics this week" is not simply describing reality — it is constructing a particular slice of it. This boundary instability is preserved intentionally in the data rather than silently fixed, and is treated as a substantive observation about how automated pipelines shape the knowledge they produce.
 
@@ -69,10 +80,10 @@ EduAtlas is designed to make these assumptions visible rather than hide them. It
 
 **Newsletter automation:** Summarises recent education policy coverage. No individual-level data involved. Output is a communication tool, not an analytical claim.
 
-**EduAtlas:** An interactive tool with two purposes:
+**AtlasED:** An interactive tool with two purposes:
 
 1. **Practical** — allows users to explore what topics are discussed, which voices are dominant, and how sentiment shifts across time and jurisdiction
-2. **Critical** — by making its assumptions transparent and inviting users to challenge them, EduAtlas is designed to surface the political choices embedded in AI-assisted policy analysis, not just to report on what it finds
+2. **Critical** — by making its assumptions transparent and inviting users to challenge them, AtlasED is designed to surface the political choices embedded in AI-assisted policy analysis, not just to report on what it finds
 
 Neither use involves automated decision-making that affects individuals.
 
@@ -80,8 +91,8 @@ Neither use involves automated decision-making that affects individuals.
 
 ## 7. Transparency
 
-- Source selection criteria and exclusions are documented in [decisions.md](decisions.md) and in the scraper code itself
+- Source selection criteria and exclusions are documented in [pipeline_decisions.md](pipeline_decisions.md) and in the scraper code itself
 - The codebase is publicly available, allowing scrutiny of what data was collected and how
 - Limitations of the corpus will be stated explicitly in any publications or outputs that draw on it
-- Security practices and known limitations are documented in [security.md](security.md)
+- Known data limitations (migration dates, empty text, language detection) are documented in project documentation
 - Claude Code is used to assist with code review and generation; all AI-generated code is reviewed before committing
