@@ -87,7 +87,7 @@ Six sources covering government, think tanks, research organisations, a funder, 
 | Education Matters | ed_media | WP API | 37 | 33 | All content types (yearbook, blog, news). |
 | TheJournal.ie | ed_media | HTML | 163 | **0** | Login wall blocks text extraction (see §11). Kept in pipeline for weekly scrapes. |
 | RTÉ News | ed_media | HTML | 0 | 0 | All articles are from 2026. No archive. Useful for weekly scrapes only. |
-| **Total** | | | **1,235** | **1,036** | |
+| **Total** | | | **1,235** | **746** | |
 
 ### Category distribution (after post-processing)
 
@@ -98,7 +98,7 @@ Six sources covering government, think tanks, research organisations, a funder, 
 | 5 | research_org | ERC | 34 | 3% |
 | 6 | prof_body | Teaching Council | 36 | 3% |
 | 7 | ed_media | Education Matters | 33 | 3% |
-| | **Total** | | **1,036** | |
+| | **Total** | | **746** | |
 
 ### Weekly inference: Jan 15 → Mar 13 2026
 
@@ -191,7 +191,7 @@ Both listing and article pages are JavaScript-rendered. The raw HTML (what `requ
 | prof_body | 104 | 3% | 36 | 3% | 117 | 23% |
 | ed_media | 2,741 | 69% | 33 | 3% | 0 | 0% |
 | civil_society | 0 | 0% | 0 | 0% | 182 | 36% |
-| **Total** | **3,943** | | **1,036** | | **511** | |
+| **Total** | **3,943** | | **746** | | **511** | |
 
 ---
 
@@ -401,19 +401,34 @@ Can also be triggered manually via `workflow_dispatch`.
 | Limitation | Impact | How addressed |
 |---|---|---|
 | Gov.ie migration dates | ~500 articles had wrong dates (2025-04-11/12 instead of real publish date) | Fixed via one-off script fetching real "Published on:" dates from each article page |
-| Ireland/Scotland have fewer articles than England | Ireland 1,036, Scotland 511 vs England 3,943 | Structural finding — reflects real differences in education media landscape, not a data collection failure |
+| Ireland/Scotland have fewer articles than England | Ireland 746, Scotland 511 vs England 3,943 | Structural finding — reflects real differences in education media landscape, not a data collection failure |
 | No free education journalism in Scotland/Ireland | ed_media category is empty (Scotland) or minimal (Ireland: 33 articles) | Documented as finding about who shapes public discourse in each jurisdiction |
 | TheJournal.ie blocked mid-project | 163 articles lost from Ireland historical dataset | Kept in weekly pipeline — login wall may be temporary. 0 articles in retro. |
 | Empty text articles | PDF links, landing pages, index pages return no paragraph content | Removed during post-processing (171 from Ireland, varying from others) |
 | HE content mixed in | Government education topics include university/college articles | Filtered by title-only HE filter across all three countries |
 | Irish/Scots Gaelic articles | Small number of non-English articles in corpus | Flagged with `language` column (`ga`/`gd`), kept in dataset as a finding about bilingual policy discourse |
-| RTÉ no archive | Only ~37 recent stories visible, 0 for retro period | Included for weekly scrapes going forward only |
+| RTÉ no archive | Only ~37 recent stories visible, 0 for retro period. RTÉ contributes to weekly inference data but is absent from the training corpus due to its lack of a public archive. RTÉ articles are assigned topics based on training distributions learned from other Ireland sources. | Included for weekly scrapes going forward only. Noted as methodological limitation. |
 | Children in Scotland no 2023 data | Site only goes back to Jan 2024 | 182 articles from 2024-2025 only. Documented gap. |
 | ADES empty posts | 37 of 87 WP posts are file download links with no text | Skipped during scraping. 50 articles with actual text content kept. |
 
 ---
 
-## 17. Data columns
+## 17. Scraper text quality fixes (22 March 2026)
+
+Initial topic modelling revealed that boilerplate text in scraped articles was contaminating NMF topics — repeated footer blocks, header prefixes, and download link text were creating junk topics rather than meaningful policy discourse patterns. Four Ireland scrapers were updated:
+
+| Source | Problem | Fix | Impact |
+|---|---|---|---|
+| **ESRI** | Every article included full footer block: address, phone, cookies statement, "Web Design by Annertech" (~500 chars per article) | Strip text at first footer marker (`"The Economic and Social Research Institute Whitaker Square"`) | Prevents a "boilerplate" topic from dominating ESRI articles in NMF |
+| **Teaching Council** | WP API returned 1-2 sentence excerpts (74-145 chars) instead of full articles | Switched to hybrid approach: WP API for listing + HTML fetch for full article text (1,386-4,739 chars) | Articles now contain enough text for meaningful topic assignment |
+| **Gov.ie** | Every article started with "From: Department of Education and Youth" prefix; some had "(PDF)" references | Strip prefix and PDF markers from extracted text | Removes repeated government attribution text from topic model input |
+| **ERC** | Articles ended with download link text ("Read the full report here", "Check out the infographic here") | Skip paragraphs containing download link phrases | Minor cleanup — prevents link text from appearing in topic keywords |
+
+**Action taken:** Full re-scrape of Ireland retro (Jan 2023 → Dec 2025) + all weekly inference files (weeks 1-11) with fixed scrapers. Re-seeded to Supabase.
+
+---
+
+## 18. Data columns
 
 All output CSVs share this schema:
 

@@ -1,6 +1,6 @@
 # Whose Voices Shape Education Policy?
 ## Comparative Discourse Ecosystem Analysis: England, Ireland, Scotland
-UCL Grand Challenges Project | Working Document
+UCL Institute of Education | Updated 22 March 2026
 
 ---
 
@@ -23,13 +23,16 @@ The table below maps each organisation in the corpus to an equivalent functional
 
 | Slot | England | % | Ireland | % | Scotland | % |
 |---|---|---|---|---|---|---|
-| Central govt | 699 | 18% | 799 | 77% | 201 | 38% |
-| Policy think tank | 222 | 6% | 134 | 13% | 24 | 5% |
-| Data / research body | 202 | 5% | 34 | 3% | 0 | 0% |
-| Professional body | 104 | 3% | 36 | 3% | 119 | 23% |
-| Ed journalism | 2,742 | 69% | 33 | 3% | 0 | 0% |
-| Advocacy | 0 | 0% | 0 | 0% | 182 | 35% |
-| **Total** | **3,943** | | **1,036** | | **526** | |
+| Central govt | 679 | 17% | 507 | 68% | 188 | 37% |
+| Policy think tank | 111 | 3% | 134 | 18% | 24 | 5% |
+| Funder | 106 | 3% | — | — | — | — |
+| Data / research body | 202 | 5% | 32 | 4% | — | — |
+| Professional body | 104 | 3% | 40 | 5% | 117 | 23% |
+| Ed media | 2,741 | 69% | 33 | 4% | — | — |
+| Civil society | — | — | — | — | 182 | 36% |
+| **Total** | **3,943** | | **746** | | **511** | |
+
+> Note: Ireland total reduced from 1,036 to 746 after scraper text quality fixes (22 March 2026). 476 articles with empty text removed (gov.ie landing pages, TheJournal.ie login wall). Teaching Council articles now contain full HTML text (previously WP API excerpts only).
 
 ---
 
@@ -59,7 +62,7 @@ All three countries have an organisation occupying the think tank functional slo
 
 - **England** has Schools Week — a free, dedicated, high-volume education news outlet publishing multiple articles daily (~900/year). This creates a rich, publicly accessible critical media layer between government and the profession. Schools Week alone constitutes 69% of the England corpus.
 
-- **Ireland** has Education Matters — a smaller specialist outlet (33 articles). TheJournal.ie had education coverage but became inaccessible due to a login wall during scraping. The Irish Times is fully paywalled. RTÉ keeps no archive.
+- **Ireland** has Education Matters — a smaller specialist outlet (33 articles). TheJournal.ie had education coverage but became inaccessible due to a login wall during scraping (163 articles found but all returned empty text). The Irish Times is fully paywalled. RTÉ keeps no archive for the retro period but contributes to weekly inference scrapes (typically 5-9 articles per week from Feb 2026 onwards).
 
 - **Scotland** has no free dedicated education journalism outlet. TES Scotland is fully paywalled. The Herald and Scotsman are also paywalled.
 
@@ -87,21 +90,21 @@ This is not a data collection limitation — it is a finding about the structure
 
 | Country | Govt share of corpus |
 |---|---|
-| Ireland | 77% |
-| Scotland | 38% |
-| England | 18% |
+| Ireland | 68% |
+| Scotland | 37% |
+| England | 17% |
 
-Ireland's corpus is overwhelmingly governmental — the Department of Education's press releases and publications dominate. Scotland is more balanced between government and advocacy. England's government share is diluted by the volume of journalism.
+Ireland's corpus is overwhelmingly governmental — the Department of Education's press releases and publications dominate. Scotland is more balanced between government and civil society. England's government share is diluted by the volume of journalism.
 
 ### 3.3 Corpus size reflects real differences
 
 | Country | Articles | Population | Articles per million people |
 |---|---|---|---|
 | England | 3,943 | 56m | 70 |
-| Ireland | 1,036 | 5m | 207 |
-| Scotland | 526 | 5.5m | 96 |
+| Ireland | 746 | 5m | 149 |
+| Scotland | 511 | 5.5m | 93 |
 
-Per capita, Ireland actually produces more education policy content than England — but it is concentrated in government channels rather than distributed across media and civil society.
+Per capita, Ireland still produces more scrapeable education policy content than England — but it is concentrated in government channels rather than distributed across media and civil society. The reduction from 1,036 to 746 reflects the removal of empty-text articles (gov.ie landing pages, TheJournal.ie login wall) after scraper quality fixes.
 
 ---
 

@@ -34,7 +34,11 @@ from supabase import create_client
 ROOT = Path(__file__).resolve().parent.parent
 
 # Data paths
-TRAINING_CSV = ROOT / "data" / "training" / "england" / "training_data_v1.csv"
+TRAINING_CSVS = {
+    "eng": ROOT / "data" / "training" / "england" / "training_data_v1.csv",
+    "irl": ROOT / "data" / "training" / "ireland" / "training_data_v1.csv",
+    "sco": ROOT / "data" / "training" / "scotland" / "training_data_v1.csv",
+}
 INFERENCE_DIRS = {
     "eng": ROOT / "data" / "inference" / "england",
     "irl": ROOT / "data" / "inference" / "ireland",
@@ -105,14 +109,21 @@ def upsert_batch(client, records, label: str, dry_run: bool = False):
     return total
 
 
-def seed_training(client, dry_run: bool = False):
-    """Seed England training data."""
-    if not TRAINING_CSV.exists():
-        print(f"⚠️  Training CSV not found: {TRAINING_CSV}")
-        return 0
+def seed_training(client, country: str = None, dry_run: bool = False):
+    """Seed training data for one or all countries."""
+    total = 0
+    countries = [country] if country else list(TRAINING_CSVS.keys())
+    country_names = {"eng": "England", "irl": "Ireland", "sco": "Scotland"}
 
-    records = csv_to_records(TRAINING_CSV, "training", "eng", week_number=None)
-    return upsert_batch(client, records, "England training", dry_run)
+    for c in countries:
+        csv_path = TRAINING_CSVS.get(c)
+        if not csv_path or not csv_path.exists():
+            print(f"⚠️  Training CSV not found: {csv_path}")
+            continue
+        records = csv_to_records(csv_path, "training", c, week_number=None)
+        total += upsert_batch(client, records, f"{country_names.get(c, c)} training", dry_run)
+
+    return total
 
 
 def seed_inference(client, country: str, week_filter=None, dry_run: bool = False):
@@ -169,11 +180,11 @@ def main():
     countries = ["eng", "irl", "sco"] if args.country == "all" else [args.country]
 
     for country in countries:
-        # Training data (England only)
-        if country == "eng" and args.week is None:
-            total += seed_training(client, dry_run=args.dry_run)
+        # Training data (all countries have retro training data)
+        if args.week is None:
+            total += seed_training(client, country=country, dry_run=args.dry_run)
 
-        # Inference data
+        # Inference data (weekly files)
         total += seed_inference(client, country, week_filter=args.week, dry_run=args.dry_run)
 
     label = "[dry-run] " if args.dry_run else ""

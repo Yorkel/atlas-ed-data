@@ -38,14 +38,14 @@ This is not a data collection limitation — it is the data.
 
 ## The corpus
 
-| Country | Sources | Training | Inference (retro) | Inference (weekly) |
-|---|---|---|---|---|
-| **England** | 6 | 3,943 articles | — | 207 (9 weeks) |
-| **Ireland** | 5 | — | 1,036 articles | 64 (9 weeks) |
-| **Scotland** | 5 | — | 511 articles | 107 (9 weeks) |
-| **Total** | **16** | | | **5,868 articles** |
+| Country | Sources | Training (retro) | Inference (weekly) |
+|---|---|---|---|
+| **England** | 6 | 3,943 articles | 207 (9 weeks) |
+| **Ireland** | 7 | 746 articles | 65 (11 weeks) |
+| **Scotland** | 5 | 511 articles | 107 (9 weeks) |
+| **Total** | **18** | **5,200** | **379** |
 
-NMF is trained on England as the reference distribution, then applied to Scotland and Ireland to measure how their education policy framing diverges from the English baseline.
+NMF is trained separately per country on the retro corpus. BERTopic is run on a balanced cross-country dataset for comparative analysis. See [methodology notes](docs/internal/nmf_bertopic_methodology.md) for rationale.
 
 ### Sources
 
@@ -56,8 +56,10 @@ NMF is trained on England as the reference distribution, then applied to Scotlan
 | Funder | Nuffield Foundation | — | — |
 | Research org | FFT Datalab | ERC | — |
 | Professional body | FED | Teaching Council | GTCS, ADES |
-| Education media | Schools Week | Education Matters | — |
+| Education media | Schools Week | Education Matters, RTÉ* | — |
 | Civil society | — | — | Children in Scotland |
+
+> *RTÉ contributes to weekly inference only (no retro archive). TheJournal.ie scraper is active but currently blocked by login wall.
 
 ---
 

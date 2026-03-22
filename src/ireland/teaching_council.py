@@ -17,7 +17,8 @@ HEADERS = {
 }
 
 
-def parse_content(html):
+def parse_content_from_api(html):
+    """Parse WP API content (used as fallback only)."""
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup.find_all(["script", "style", "figure", "aside"]):
         tag.decompose()
@@ -26,6 +27,30 @@ def parse_content(html):
         for p in soup.find_all("p")
         if p.get_text(strip=True)
     )
+
+
+def fetch_full_text(url):
+    """Fetch full article text from the HTML page (not WP API excerpt)."""
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=30)
+        if r.status_code != 200:
+            return ""
+        soup = BeautifulSoup(r.text, "lxml")
+        main = soup.find("main")
+        if not main:
+            return ""
+        # Remove boilerplate elements
+        for tag in main.find_all(["script", "style", "figure", "aside", "nav"]):
+            tag.decompose()
+        # Skip the "Published" date paragraph
+        paras = []
+        for p in main.find_all("p"):
+            text = p.get_text(strip=True)
+            if text and not text.startswith("Published"):
+                paras.append(text)
+        return "\n".join(paras)
+    except Exception:
+        return ""
 
 
 # ----------------------------------------------------------
@@ -80,7 +105,6 @@ def scrape_teaching_council(since_date: "date | None" = None, until_date: "date 
         for post in posts:
             pub_date = datetime.fromisoformat(post["date"]).date()
             title = BeautifulSoup(post["title"]["rendered"], "html.parser").get_text(strip=True)
-            text = parse_content(post["content"]["rendered"])
             url = post["link"]
 
             # Skip admin/maintenance posts
@@ -88,10 +112,19 @@ def scrape_teaching_council(since_date: "date | None" = None, until_date: "date 
                 print(f"    Skipping admin post: {title[:60]}")
                 continue
 
-            # Skip posts with no text
+            # Fetch full text from HTML page
+            text = fetch_full_text(url)
+
+            # Fallback to WP API content if HTML fetch fails
+            if not text.strip():
+                text = parse_content_from_api(post["content"]["rendered"])
+
+            # Skip posts with no text at all
             if not text.strip():
                 print(f"    Skipping empty post: {title[:60]}")
                 continue
+
+            print(f"    {pub_date} | {title[:60]} ({len(text)} chars)")
 
             all_articles.append({
                 "url": url,

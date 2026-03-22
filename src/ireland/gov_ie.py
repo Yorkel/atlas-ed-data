@@ -50,6 +50,10 @@ def scrape_article(url):
     else:
         text = ""
 
+    # Strip gov.ie boilerplate
+    text = text.replace("From: Department of Education and Youth", "").strip()
+    text = text.replace("(PDF)", "").strip()
+
     return text
 
 

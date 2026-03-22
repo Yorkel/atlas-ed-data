@@ -21,11 +21,23 @@ def parse_content(html):
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup.find_all(["script", "style", "figure", "aside"]):
         tag.decompose()
-    return "\n".join(
-        p.get_text(" ", strip=True)
-        for p in soup.find_all("p")
-        if p.get_text(strip=True)
-    )
+    # Skip download link text at end of articles
+    SKIP_PHRASES = [
+        "can be downloaded here",
+        "Read the full report here",
+        "Check out the infographic here",
+        "Explore the appendices",
+        "Download the report",
+    ]
+    lines = []
+    for p in soup.find_all("p"):
+        t = p.get_text(" ", strip=True)
+        if not t:
+            continue
+        if any(phrase in t for phrase in SKIP_PHRASES):
+            continue
+        lines.append(t)
+    return "\n".join(lines)
 
 
 # ----------------------------------------------------------

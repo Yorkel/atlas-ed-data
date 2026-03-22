@@ -92,13 +92,23 @@ def _scrape_article(url, since_date=None, until_date=None):
         if until_date and pub_date > until_date:
             return "SKIP"
 
-    # Main content — get all <p> tags
+    # Main content — get all <p> tags, strip footer boilerplate
+    FOOTER_MARKERS = [
+        "The Economic and Social Research Institute Whitaker Square",
+        "ESRI Accessibility Statement",
+        "ESRI Governance Policies",
+        "Web Design and Development by Annertech",
+    ]
     paragraphs = soup.find_all("p")
-    text = "\n".join(
-        p.get_text(" ", strip=True)
-        for p in paragraphs
-        if p.get_text(strip=True)
-    )
+    lines = []
+    for p in paragraphs:
+        t = p.get_text(" ", strip=True)
+        if not t:
+            continue
+        if any(marker in t for marker in FOOTER_MARKERS):
+            break  # stop at footer
+        lines.append(t)
+    text = "\n".join(lines)
 
     return {
         "url": url,

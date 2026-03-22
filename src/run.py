@@ -78,17 +78,32 @@ COUNTRY_DIR = {
     "irl": "ireland",
 }
 
-# Countries whose data goes to training (England only until Phase 2)
-TRAINING_COUNTRIES = {"eng"}
+# Countries whose retro data (up to TRAINING_CUTOFF) goes to training
+TRAINING_COUNTRIES = {"eng", "irl", "sco"}
 
 # Per-source training CSV filenames (country subfolder added at runtime)
 TRAINING_FILENAMES = {
+    # England
     "schoolsweek": "schoolsweek.csv",
     "gov":         "govuk_education.csv",
     "epi":         "epi.csv",
     "nuffield":    "nuffield.csv",
     "fft":         "fft_education_datalab.csv",
     "fed":         "fed.csv",
+    # Ireland
+    "gov_ie":            "gov_ie.csv",
+    "esri":              "esri.csv",
+    "erc":               "erc.csv",
+    "teaching_council":  "teaching_council.csv",
+    "education_matters": "education_matters.csv",
+    "thejournal":        "thejournal.csv",
+    "rte":               "rte.csv",
+    # Scotland
+    "gov_scot":               "gov_scot.csv",
+    "sera":                   "sera.csv",
+    "gtcs":                   "gtcs.csv",
+    "ades":                   "ades.csv",
+    "children_in_scotland":   "children_in_scotland.csv",
 }
 
 # Scrapers grouped by country code — add Scotland/Ireland entries here when ready
