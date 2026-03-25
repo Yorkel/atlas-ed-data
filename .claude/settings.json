@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python src/seed_supabase.py --dry-run)"
-    ]
-  }
-}
