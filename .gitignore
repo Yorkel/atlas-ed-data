@@ -222,3 +222,4 @@ venv/
 
 # Environment variables
 .env
+.claude/
